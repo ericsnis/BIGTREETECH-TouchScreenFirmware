@@ -22,7 +22,7 @@ const ECHO knownEcho[] = {
   {ECHO_NOTIFY_NONE, "Now fresh file:"},
   {ECHO_NOTIFY_NONE, "Now doing file:"},
   //{ECHO_NOTIFY_NONE, "Probe Offset"},
-  //{ECHO_NOTIFY_NONE, "enqueueing \"M117\""},
+  {ECHO_NOTIFY_NONE, "enqueueing \"M117\""},
   {ECHO_NOTIFY_NONE, "Flow:"},
   {ECHO_NOTIFY_NONE, "echo:;"},                   // M503
   {ECHO_NOTIFY_NONE, "echo:  G"},                 // M503

@@ -781,7 +781,7 @@
  * If enabled, when the LCD is idle (dimmed) then the knob LED will be also switched off.
  *   Options: [disable: 0, enable: 1]
  */
-#define KNOB_LED_IDLE 1  // Default: 1
+#define KNOB_LED_IDLE 0  // Default: 1
 
 /**
  * Knob LED Pixels (only for TFT28/TFT35_E3/TFT43/TFT50/TFT70 V3.0)
