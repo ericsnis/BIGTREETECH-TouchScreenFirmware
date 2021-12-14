@@ -8,7 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include "ff.h"
 
-//after changing/adding/removing a keyword, change the CONFIG_FLASH_SIGN in Settings.h and PARA_SIGN in FlashStore.c
+// after changing/adding/removing a keyword, change the CONFIG_FLASH_SIGN in Settings.h and PARA_SIGN in FlashStore.c
 
 #define LINE_MAX_CHAR                 200
 #define CONFIG_FILE_PATH              "0:config.ini"
@@ -18,6 +18,7 @@ extern "C" {
 #define CONFIG_SERIAL_PORT            "serial_port:"
 #define CONFIG_EMULATED_M600          "emulated_m600:"
 #define CONFIG_EMULATED_M109_M190     "emulated_m109_m190:"
+#define CONFIG_FILE_COMMENT_PARSING   "file_comment_parsing:"
 
 //-----------------------------UI Settings
 #define CONFIG_ROTATED_UI             "rotated_ui:"
@@ -38,6 +39,7 @@ extern "C" {
 #define CONFIG_ACK_NOTIFICATION       "ack_notification:"
 #define CONFIG_FILES_SORT_BY          "files_sort_by:"
 #define CONFIG_FILES_LIST_MODE        "files_list_mode:"
+#define CONFIG_FILENAME_EXTENSION     "filename_extension:"
 #define CONFIG_FAN_SPEED_PERCENTAGE   "fan_speed_percentage:"
 #define CONFIG_PERSISTENT_INFO        "persistent_info:"
 #define CONFIG_TERMINAL_ACK           "terminal_ack:"
@@ -229,12 +231,12 @@ void drawProgressPage(uint8_t * title);
 void drawProgress(void);
 void showError(CONFIG_STATS stat);
 
-//This List is Auto-Generated. Please add new icons in icon_list.inc only
+// This List is Auto-Generated. Please add new config in config.inc only
 enum
 {
   #define X_CONFIG(NAME) C_INDEX_##NAME ,
-  #include "config.inc"
-  #undef  X_CONFIG
+    #include "config.inc"
+  #undef X_CONFIG
 
   CONFIG_COUNT,
 };
