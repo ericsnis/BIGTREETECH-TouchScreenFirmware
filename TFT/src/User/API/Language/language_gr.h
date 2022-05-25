@@ -2,11 +2,12 @@
 #define _LANGUAGE_GR_H_
 
     // config.ini Parameter Settings - Screen Settings and Feature Settings
+    #define STRING_LANGUAGE               "Ελληνικά"
     #define STRING_EMULATED_M600          "Emulated M600"
     #define STRING_EMULATED_M109_M190     "Emulated M109 / M190"
+    #define STRING_EVENT_LED              "Event LED"
     #define STRING_FILE_COMMENT_PARSING   "File comment parsing"
     #define STRING_ROTATED_UI             "Περιστροφή UI"
-    #define STRING_LANGUAGE               "Ελληνικά"
     #define STRING_ACK_NOTIFICATION       "ACK notification style"
     #define STRING_FILES_SORT_BY          "Sort files by"
     #define STRING_FILES_LIST_MODE        "Λειτουργία λίστας προβολής αρχείων"
@@ -35,6 +36,7 @@
     #define STRING_LCD_IDLE_BRIGHTNESS    "Φωτεινότητα LCD σκοτεινή"
     #define STRING_LCD_IDLE_TIME          "Xρονομετρητής αδράνειας οθόνης"
     #define STRING_LCD_LOCK_ON_IDLE       "LCD lock on idle"
+    #define STRING_LED_ALWAYS_ON          "LED always ON"
     #define STRING_KNOB_LED_COLOR         "LED περιστροφικού κουμπιού"
     #define STRING_KNOB_LED_IDLE          "Rotary Knob LED idle"
     #define STRING_START_GCODE_ENABLED    "Αρχικό Gcode προ εκτύπωσης"
@@ -57,6 +59,7 @@
     #define STRING_STEALTH_CHOP           "TMC StealthChop"
     #define STRING_DELTA_CONFIGURATION    "Delta Configuration"
     #define STRING_DELTA_TOWER_ANGLE      "Tower Angle Trim"
+    #define STRING_DELTA_DIAGONAL_ROD     "Diagonal Rod Trim"
     #define STRING_DELTA_ENDSTOP          "Endstop Adjustments"
     #define STRING_PROBE_OFFSET           "Αντιστάθμιση Καθετήρας"
     #define STRING_LIN_ADVANCE            "Linear Advance"
@@ -159,17 +162,20 @@
     #define STRING_PROCESS_COMPLETED      "Process completed!"
     #define STRING_PROCESS_ABORTED        "Process aborted!"
 
-    // TFT SD, U_DISK, Onboard SD, Filament Runout Process Commands / Status / Info
-    #define STRING_TFTSD                  "TFT SD"
-    #define STRING_READ_TFTSD_ERROR       "Σφάλμα ανάγνωσης κάρτας SD οθόνης!"
-    #define STRING_TFTSD_INSERTED         "Η κάρτα έχει εισαχθεί!"
-    #define STRING_TFTSD_REMOVED          "Η κάρτα αφαιρέθηκε!"
-    #define STRING_U_DISK                 "USB Δίσκος"
-    #define STRING_READ_U_DISK_ERROR      "Σφάλμα ανάγνωσης USB Δίσκου!"
-    #define STRING_U_DISK_INSERTED        "Ο USB Δίσκος έχει εισαχθεί!"
-    #define STRING_U_DISK_REMOVED         "Ο USB Δίσκος αφαιρέθηκε!"
-    #define STRING_ONBOARDSD              "Ενσωματωμένη κάρτα SD"
-    #define STRING_READ_ONBOARDSD_ERROR   "Σφάλμα ανάγνωσης ενσωματωμένης κάρτας SD!"
+    // TFT Media, Onboard Media, Filament Runout Process Commands / Status / Info
+    #define STRING_TFT_SD                 "TFT SD"
+    #define STRING_TFT_SD_READ_ERROR      "Σφάλμα ανάγνωσης κάρτας SD οθόνης!"
+    #define STRING_TFT_SD_INSERTED        "Η κάρτα έχει εισαχθεί!"
+    #define STRING_TFT_SD_REMOVED         "Η κάρτα αφαιρέθηκε!"
+    #define STRING_TFT_SD_NOT_DETECTED    "No SD Card detected."
+    #define STRING_TFT_USB                "USB Δίσκος"
+    #define STRING_TFT_USB_READ_ERROR     "Σφάλμα ανάγνωσης USB Δίσκου!"
+    #define STRING_TFT_USB_INSERTED       "Ο USB Δίσκος έχει εισαχθεί!"
+    #define STRING_TFT_USB_REMOVED        "Ο USB Δίσκος αφαιρέθηκε!"
+    #define STRING_TFT_USB_NOT_DETECTED   "No USB Disk detected."
+    #define STRING_ONBOARD_SD             "Ενσωματωμένη κάρτα SD"
+    #define STRING_ONBOARD_USB            "Ενσωματωμένη κάρτα USB"
+    #define STRING_ONBOARD_SD_READ_ERROR  "Σφάλμα ανάγνωσης ενσωματωμένης κάρτας SD!"
     #define STRING_FILAMENT_RUNOUT        "τελείωσε το νημά!"
 
     // Steppers, Print, Probe Process Commands / Status / Info
@@ -185,6 +191,8 @@
     #define STRING_DEPLOY                 "Επέκταση"
     #define STRING_STOW                   "Aπόσυρση"
     #define STRING_REPEAT                 "Επανάληψη"
+    #define STRING_HS_ON                  "HS: On"
+    #define STRING_HS_OFF                 "HS: Off"
 
     // Printer Tools
     #define STRING_NOZZLE                 "Στόμιο"
@@ -289,6 +297,7 @@
     #define STRING_ABL_SLOT_EEPROM        "Save the mesh to EEPROM to load after reboot?"
     #define STRING_ABL_Z                  "Z Fade"
     #define STRING_LEVEL_CORNER           "L corner"
+    #define STRING_LEVEL_CORNER_INFO      "Edge distance is below probe offset X/Y and some target points could be not reachable.\nDo you want to use a safe edge distance?"
     #define STRING_P_OFFSET               "Αντιστάθμιση P"
     #define STRING_H_OFFSET               "Αντιστάθμιση H"
     #define STRING_DISTANCE               "Distance"

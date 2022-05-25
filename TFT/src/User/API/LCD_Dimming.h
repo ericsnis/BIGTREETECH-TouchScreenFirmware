@@ -62,9 +62,9 @@ extern "C" {
     LCD_IDLE_TIME_COUNT
   } LCD_IDLE_TIME_;
 
-  extern const uint32_t lcd_brightness[LCD_BRIGHTNESS_COUNT];
+  extern const uint8_t lcd_brightness[LCD_BRIGHTNESS_COUNT];
 
-  extern const uint32_t lcd_idle_times[LCD_IDLE_TIME_COUNT];
+  extern const uint16_t lcd_idle_times[LCD_IDLE_TIME_COUNT];
   extern const LABEL lcd_idle_time_names[LCD_IDLE_TIME_COUNT];
 
   bool LCD_IsBlocked(void);
@@ -78,6 +78,14 @@ extern "C" {
   #define LCD_WAKE()
 
 #endif  // LCD_LED_PWM_CHANNEL
+
+#if defined(LCD_LED_PWM_CHANNEL) && defined(KNOB_LED_COLOR_PIN)
+  void LCD_SetKnobLedIdle(bool enabled);
+
+  #define LCD_SET_KNOB_LED_IDLE(enabled) LCD_SetKnobLedIdle(enabled)
+#else
+  #define LCD_SET_KNOB_LED_IDLE(enabled)
+#endif  // LCD_LED_PWM_CHANNEL && KNOB_LED_COLOR_PIN
 
 #ifdef __cplusplus
 }

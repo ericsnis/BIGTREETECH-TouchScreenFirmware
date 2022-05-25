@@ -2,11 +2,12 @@
 #define _LANGUAGE_CN_H_
 
     // config.ini Parameter Settings - Screen Settings and Feature Settings
+    #define STRING_LANGUAGE               "简体中文"
     #define STRING_EMULATED_M600          "模拟M600"
     #define STRING_EMULATED_M109_M190     "Emulated M109 / M190"
+    #define STRING_EVENT_LED              "Event LED"
     #define STRING_FILE_COMMENT_PARSING   "File comment parsing"
     #define STRING_ROTATED_UI             "旋转界面"
-    #define STRING_LANGUAGE               "简体中文"
     #define STRING_ACK_NOTIFICATION       "ACK 弹窗类型"
     #define STRING_FILES_SORT_BY          "Sort files by"
     #define STRING_FILES_LIST_MODE        "文件浏览列表模式"
@@ -35,6 +36,7 @@
     #define STRING_LCD_IDLE_BRIGHTNESS    "LCD睡眠背光亮度"
     #define STRING_LCD_IDLE_TIME          "LCD自动睡眠时间"
     #define STRING_LCD_LOCK_ON_IDLE       "LCD lock on idle"
+    #define STRING_LED_ALWAYS_ON          "LED always ON"
     #define STRING_KNOB_LED_COLOR         "旋钮LED颜色"
     #define STRING_KNOB_LED_IDLE          "旋钮LED自动睡眠"
     #define STRING_START_GCODE_ENABLED    "执行打印前起始Gcode"
@@ -57,6 +59,7 @@
     #define STRING_STEALTH_CHOP           "TMC StealthChop"
     #define STRING_DELTA_CONFIGURATION    "Delta Configuration"
     #define STRING_DELTA_TOWER_ANGLE      "Tower Angle Trim"
+    #define STRING_DELTA_DIAGONAL_ROD     "Diagonal Rod Trim"
     #define STRING_DELTA_ENDSTOP          "Endstop Adjustments"
     #define STRING_PROBE_OFFSET           "探针偏移量"
     #define STRING_LIN_ADVANCE            "Linear Advance"
@@ -159,17 +162,20 @@
     #define STRING_PROCESS_COMPLETED      "处理已完成!"
     #define STRING_PROCESS_ABORTED        "处理已被中断!"
 
-    // TFT SD, U_DISK, Onboard SD, Filament Runout Process Commands / Status / Info
-    #define STRING_TFTSD                  "TFT SD"
-    #define STRING_READ_TFTSD_ERROR       "读TFT SD卡出错!"
-    #define STRING_TFTSD_INSERTED         "SD卡已插入!"
-    #define STRING_TFTSD_REMOVED          "SD卡已拔出!"
-    #define STRING_U_DISK                 "U盘"
-    #define STRING_READ_U_DISK_ERROR      "读U盘出错!"
-    #define STRING_U_DISK_INSERTED        "U盘已插入!"
-    #define STRING_U_DISK_REMOVED         "U盘已拔出!"
-    #define STRING_ONBOARDSD              "板载SD"
-    #define STRING_READ_ONBOARDSD_ERROR   "读板载SD卡出错!"
+    // TFT Media, Onboard Media, Filament Runout Process Commands / Status / Info
+    #define STRING_TFT_SD                 "TFT SD"
+    #define STRING_TFT_SD_READ_ERROR      "读TFT SD卡出错!"
+    #define STRING_TFT_SD_INSERTED        "SD卡已插入!"
+    #define STRING_TFT_SD_REMOVED         "SD卡已拔出!"
+    #define STRING_TFT_SD_NOT_DETECTED    "No SD Card detected."
+    #define STRING_TFT_USB                "U盘"
+    #define STRING_TFT_USB_READ_ERROR     "读U盘出错!"
+    #define STRING_TFT_USB_INSERTED       "U盘已插入!"
+    #define STRING_TFT_USB_REMOVED        "U盘已拔出!"
+    #define STRING_TFT_USB_NOT_DETECTED   "No USB Disk detected."
+    #define STRING_ONBOARD_SD             "板载SD"
+    #define STRING_ONBOARD_USB            "板载USB"
+    #define STRING_ONBOARD_SD_READ_ERROR  "主機板的存儲介質讀取失敗!"
     #define STRING_FILAMENT_RUNOUT        "耗材已用尽,请更换耗材!"
 
     // Steppers, Print, Probe Process Commands / Status / Info
@@ -185,6 +191,8 @@
     #define STRING_DEPLOY                 "探针弹出"
     #define STRING_STOW                   "探针收回"
     #define STRING_REPEAT                 "精度测试"
+    #define STRING_HS_ON                  "HS: On"
+    #define STRING_HS_OFF                 "HS: Off"
 
     // Printer Tools
     #define STRING_NOZZLE                 "喷头"
@@ -289,6 +297,7 @@
     #define STRING_ABL_SLOT_EEPROM        "Save the mesh to EEPROM to load after reboot?"
     #define STRING_ABL_Z                  "Z Fade"
     #define STRING_LEVEL_CORNER           "L corner"
+    #define STRING_LEVEL_CORNER_INFO      "Edge distance is below probe offset X/Y and some target points could be not reachable.\nDo you want to use a safe edge distance?"
     #define STRING_P_OFFSET               "P Offset"
     #define STRING_H_OFFSET               "H Offset"
     #define STRING_DISTANCE               "距离"

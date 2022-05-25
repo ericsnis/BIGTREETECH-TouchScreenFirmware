@@ -19,16 +19,16 @@ extern "C" {
 #define LISTITEM_PER_PAGE 5
 #define LIVEICON_LINES    3
 
-#define CENTER_Y         ((exhibitRect.y1 - exhibitRect.y0) / 2 + exhibitRect.y0)
-#define CENTER_X         ((exhibitRect.x1 - exhibitRect.x0 - BYTE_WIDTH) / 2 + exhibitRect.x0)
-#ifdef PORTRAIT
-  #define LISTITEM_WIDTH   (LCD_WIDTH - (3 * START_X))
-  #define LISTITEM_HEIGHT  ((LCD_HEIGHT - ICON_START_Y - START_X) / 6)
+#define CENTER_Y          ((exhibitRect.y1 - exhibitRect.y0) / 2 + exhibitRect.y0)
+#define CENTER_X          ((exhibitRect.x1 - exhibitRect.x0 - BYTE_WIDTH) / 2 + exhibitRect.x0)
+#ifdef PORTRAIT_MODE
+  #define LISTITEM_WIDTH  (LCD_WIDTH - (3 * START_X))
+  #define LISTITEM_HEIGHT ((LCD_HEIGHT - ICON_START_Y - START_X) / 6)
 #else
-  #define LISTITEM_WIDTH   (LCD_WIDTH - (3 * START_X) - LIST_ICON_WIDTH)
-  #define LISTITEM_HEIGHT  ((LCD_HEIGHT - ICON_START_Y - START_X) / 5)
+  #define LISTITEM_WIDTH  (LCD_WIDTH - (3 * START_X) - LIST_ICON_WIDTH)
+  #define LISTITEM_HEIGHT ((LCD_HEIGHT - ICON_START_Y - START_X) / 5)
 #endif
-#define LISTICON_SPACE_Y ((LCD_HEIGHT - ICON_START_Y - START_X - (3 * LIST_ICON_HEIGHT)) / 2)
+#define LISTICON_SPACE_Y  ((LCD_HEIGHT - ICON_START_Y - START_X - (3 * LIST_ICON_HEIGHT)) / 2)
 
 typedef enum
 {
@@ -91,7 +91,7 @@ typedef union
 } LABEL;
 
 // always initialize label to default values
-#define init_label(X) LABEL X = {.index = LABEL_BACKGROUND}
+#define init_label(X) LABEL X = {.index = LABEL_NULL}
 
 typedef struct
 {
@@ -107,11 +107,11 @@ typedef struct
 
 typedef enum
 {
-  STATUS_IDLE = 0,
-  STATUS_BUSY,
-  STATUS_DISCONNECTED,
-  STATUS_LISTENING,
-  STATUS_NORMAL
+  SYS_STATUS_IDLE = 0,
+  SYS_STATUS_BUSY,
+  SYS_STATUS_DISCONNECTED,
+  SYS_STATUS_LISTENING,
+  SYS_STATUS_NORMAL
 } SYS_STATUS;
 
 typedef struct
@@ -148,18 +148,19 @@ typedef struct
 
 typedef struct
 {
-  uint8_t *     text;
-  GUI_POINT     pos;      // relative to icon top left corner
-  uint8_t       h_align;  // left, right or center of pos point
-  uint8_t       v_align;  // left, right or center of pos point
-  uint16_t      fn_color;
-  uint16_t      bk_color;
-  GUI_TEXT_MODE text_mode;
-  uint16_t      font;
+  const uint8_t * text;
+  GUI_POINT       pos;      // relative to icon top left corner
+  uint8_t         h_align;  // left, right or center of pos point
+  uint8_t         v_align;  // top, bottom or center of pos point
+  uint16_t        fn_color;
+  uint16_t        bk_color;
+  GUI_TEXT_MODE   text_mode;
+  uint16_t        font;
 } LIVE_DATA;
 
 typedef struct
 {
+  uint8_t   iconIndex;
   uint8_t   enabled[LIVEICON_LINES];
   LIVE_DATA lines[LIVEICON_LINES];
 } LIVE_INFO;
@@ -171,7 +172,7 @@ extern const GUI_RECT rect_of_key[MENU_RECT_COUNT];
 extern const GUI_RECT rect_of_keySS[SS_RECT_COUNT];
 extern const GUI_RECT rect_of_keyPS[];
 extern const GUI_RECT rect_of_keyPS_end[];
-extern const GUI_RECT rect_of_keyPS_draw[];  // Used to draw VERTICAL GUI printing menu
+extern const GUI_RECT rect_of_keyPS_draw[];  // used to draw VERTICAL GUI Printing menu
 
 extern const GUI_RECT rect_of_titleBar[1];
 
@@ -191,19 +192,19 @@ GUI_POINT getIconStartPoint(int index);
 void GUI_RestoreColorDefault(void);
 uint8_t *labelGetAddress(const LABEL * label);
 void setMenu(MENU_TYPE menu_type, LABEL * title, uint16_t rectCount, const GUI_RECT * menuRect,
-             void(*action_redraw)(uint8_t position, uint8_t is_press),
+             void (*action_redraw)(uint8_t position, uint8_t is_press),
              void (*menu_redraw)(void));
 void menuDrawItem (const ITEM * menuItem, uint8_t position);
 void menuDrawIconOnly(const ITEM *item, uint8_t position);
 void menuDrawIconText(const ITEM *item, uint8_t position);
 void menuDrawListItem(const LISTITEM *item, uint8_t position);
 void menuRefreshListPage(void);
-void menuDrawTitle(const uint8_t *content);  //(const MENUITEMS * menuItems);
-void menuReDrawCurTitle(void);
+void menuSetTitle(const LABEL *title);
+void menuDrawTitle(void);
 void menuDrawPage(const MENUITEMS * menuItems);
 void menuDrawListPage(const LISTITEMS *listItems);
 
-void showLiveInfo(uint8_t index, const LIVE_INFO * liveicon, const ITEM * item);
+void showLiveInfo(uint8_t index, const LIVE_INFO * liveicon, bool redrawIcon);
 void displayExhibitHeader(const char * titleStr, const char * unitStr);
 void displayExhibitValue(const char * valueStr);
 

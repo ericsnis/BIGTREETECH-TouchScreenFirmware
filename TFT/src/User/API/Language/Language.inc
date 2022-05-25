@@ -9,11 +9,12 @@
  */
 
 // config.ini Parameter Settings - Screen Settings and Feature Settings
+X_WORD (LANGUAGE)
 X_WORD (EMULATED_M600)
 X_WORD (EMULATED_M109_M190)
+X_WORD (EVENT_LED)
 X_WORD (FILE_COMMENT_PARSING)
 X_WORD (ROTATED_UI)
-X_WORD (LANGUAGE)
 X_WORD (ACK_NOTIFICATION)
 X_WORD (FILES_SORT_BY)
 X_WORD (FILES_LIST_MODE)
@@ -42,6 +43,7 @@ X_WORD (LCD_BRIGHTNESS)
 X_WORD (LCD_IDLE_BRIGHTNESS)
 X_WORD (LCD_IDLE_TIME)
 X_WORD (LCD_LOCK_ON_IDLE)
+X_WORD (LED_ALWAYS_ON)
 X_WORD (KNOB_LED_COLOR)
 X_WORD (KNOB_LED_IDLE)
 X_WORD (START_GCODE_ENABLED)
@@ -49,41 +51,42 @@ X_WORD (END_GCODE_ENABLED)
 X_WORD (CANCEL_GCODE_ENABLED)
 
 // Machine Parameter Settings - Param Title (ordered by gcode)
-X_WORD (STEPS_SETTING)                           // M92
-X_WORD (FILAMENT_SETTING)                        // M200
-X_WORD (MAXACCELERATION)                         // M201
-X_WORD (MAXFEEDRATE)                             // M203
-X_WORD (ACCELERATION)                            // M204
-X_WORD (JERK)                                    // M205
-X_WORD (JUNCTION_DEVIATION)                      // M205
-X_WORD (HOME_OFFSET)                             // M206
-X_WORD (FWRETRACT)                               // M207
-X_WORD (FWRECOVER)                               // M208
-X_WORD (RETRACT_AUTO)                            // M209
-X_WORD (HOTEND_OFFSET)                           // M218
-X_WORD (STEALTH_CHOP)                            // M569
-X_WORD (DELTA_CONFIGURATION)                     // M665
-X_WORD (DELTA_TOWER_ANGLE)                       // M665
-X_WORD (DELTA_ENDSTOP)                           // M666
-X_WORD (PROBE_OFFSET)                            // M851
-X_WORD (LIN_ADVANCE)                             // M900
-X_WORD (CURRENT_SETTING)                         // M906
-X_WORD (HYBRID_THRESHOLD)                        // M913
-X_WORD (BUMP_SENSITIVITY)                        // M914
-X_WORD (MBL_OFFSET)                              // G29
+X_WORD (STEPS_SETTING)        // M92
+X_WORD (FILAMENT_SETTING)     // M200
+X_WORD (MAXACCELERATION)      // M201
+X_WORD (MAXFEEDRATE)          // M203
+X_WORD (ACCELERATION)         // M204
+X_WORD (JERK)                 // M205
+X_WORD (JUNCTION_DEVIATION)   // M205
+X_WORD (HOME_OFFSET)          // M206
+X_WORD (FWRETRACT)            // M207
+X_WORD (FWRECOVER)            // M208
+X_WORD (RETRACT_AUTO)         // M209
+X_WORD (HOTEND_OFFSET)        // M218
+X_WORD (STEALTH_CHOP)         // M569
+X_WORD (DELTA_CONFIGURATION)  // M665
+X_WORD (DELTA_TOWER_ANGLE)    // M665
+X_WORD (DELTA_DIAGONAL_ROD)   // M665
+X_WORD (DELTA_ENDSTOP)        // M666
+X_WORD (PROBE_OFFSET)         // M851
+X_WORD (LIN_ADVANCE)          // M900
+X_WORD (CURRENT_SETTING)      // M906
+X_WORD (HYBRID_THRESHOLD)     // M913
+X_WORD (BUMP_SENSITIVITY)     // M914
+X_WORD (MBL_OFFSET)           // G29
 
 // Machine Parameter Settings - Param Attributes (ordered by gcode)
-X_WORD (PRINT_ACCELERATION)                      // M204
-X_WORD (RETRACT_ACCELERATION)                    // M204
-X_WORD (TRAVEL_ACCELERATION)                     // M204
-X_WORD (RETRACT_LENGTH)                          // M207
-X_WORD (RETRACT_SWAP_LENGTH)                     // M207
-X_WORD (RETRACT_FEEDRATE)                        // M207
-X_WORD (RETRACT_Z_LIFT)                          // M207
-X_WORD (RECOVER_LENGTH)                          // M208
-X_WORD (SWAP_RECOVER_LENGTH)                     // M208
-X_WORD (RECOVER_FEEDRATE)                        // M208
-X_WORD (SWAP_RECOVER_FEEDRATE)                   // M208
+X_WORD (PRINT_ACCELERATION)     // M204
+X_WORD (RETRACT_ACCELERATION)   // M204
+X_WORD (TRAVEL_ACCELERATION)    // M204
+X_WORD (RETRACT_LENGTH)         // M207
+X_WORD (RETRACT_SWAP_LENGTH)    // M207
+X_WORD (RETRACT_FEEDRATE)       // M207
+X_WORD (RETRACT_Z_LIFT)         // M207
+X_WORD (RECOVER_LENGTH)         // M208
+X_WORD (SWAP_RECOVER_LENGTH)    // M208
+X_WORD (RECOVER_FEEDRATE)       // M208
+X_WORD (SWAP_RECOVER_FEEDRATE)  // M208
 
 // Save / Load
 X_WORD (SAVE)
@@ -166,17 +169,20 @@ X_WORD (PROCESS_RUNNING)
 X_WORD (PROCESS_COMPLETED)
 X_WORD (PROCESS_ABORTED)
 
-// TFT SD, U_DISK, Onboard SD, Filament Runout Process Commands / Status / Info
-X_WORD (TFTSD)
-X_WORD (READ_TFTSD_ERROR)
-X_WORD (TFTSD_INSERTED)
-X_WORD (TFTSD_REMOVED)
-X_WORD (U_DISK)
-X_WORD (READ_U_DISK_ERROR)
-X_WORD (U_DISK_INSERTED)
-X_WORD (U_DISK_REMOVED)
-X_WORD (ONBOARDSD)
-X_WORD (READ_ONBOARDSD_ERROR)
+// TFT Media, Onboard Media, Filament Runout Process Commands / Status / Info
+X_WORD (TFT_SD)
+X_WORD (TFT_SD_READ_ERROR)
+X_WORD (TFT_SD_INSERTED)
+X_WORD (TFT_SD_REMOVED)
+X_WORD (TFT_SD_NOT_DETECTED)
+X_WORD (TFT_USB)
+X_WORD (TFT_USB_READ_ERROR)
+X_WORD (TFT_USB_INSERTED)
+X_WORD (TFT_USB_REMOVED)
+X_WORD (TFT_USB_NOT_DETECTED)
+X_WORD (ONBOARD_SD)
+X_WORD (ONBOARD_USB)
+X_WORD (ONBOARD_SD_READ_ERROR)
 X_WORD (FILAMENT_RUNOUT)
 
 // Steppers, Print, Probe Process Commands / Status / Info
@@ -192,6 +198,8 @@ X_WORD (TEST)
 X_WORD (DEPLOY)
 X_WORD (STOW)
 X_WORD (REPEAT)
+X_WORD (HS_ON)
+X_WORD (HS_OFF)
 
 // Printer Tools
 X_WORD (NOZZLE)
@@ -296,6 +304,7 @@ X_WORD (ABL_SLOT3)
 X_WORD (ABL_SLOT_EEPROM)
 X_WORD (ABL_Z)
 X_WORD (LEVEL_CORNER)
+X_WORD (LEVEL_CORNER_INFO)
 X_WORD (P_OFFSET)
 X_WORD (H_OFFSET)
 X_WORD (DISTANCE)

@@ -31,6 +31,7 @@ extern "C" {
 #define CATALAN       18
 #define TRAD_CHINESE  19
 #define UKRAINIAN     20
+#define BRAZIL        21
 
 enum
 {
@@ -47,11 +48,12 @@ enum {
   // add new keywords in 'Language.inc' file only
   // keep the following always at the end of this list
   LABEL_NUM,
-  LABEL_BACKGROUND,
+  LABEL_NULL,
   LABEL_DYNAMIC,
   LABEL_CUSTOM_VALUE,
 };
 
+extern const char *const default_pack[LABEL_NUM];
 extern const char *const lang_key_list[LABEL_NUM];
 
 // use only once in any function call. Calling multiple times will overwrite previous text.

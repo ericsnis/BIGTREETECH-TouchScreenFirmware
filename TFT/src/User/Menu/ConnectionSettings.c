@@ -8,7 +8,7 @@ void updateListeningMode(MENUITEMS * menu)
   if (GET_BIT(infoSettings.general_settings, INDEX_LISTENING_MODE) == 1)
   {
     menu->items[4].label.index = LABEL_OFF;
-    reminderMessage(LABEL_LISTENING, STATUS_LISTENING);
+    reminderMessage(LABEL_LISTENING, SYS_STATUS_LISTENING);
   }
   else
   {
@@ -141,8 +141,8 @@ void menuConnectionSettings(void)
       {ICON_STOP,                    LABEL_EMERGENCYSTOP},
       {ICON_SHUT_DOWN,               LABEL_SHUT_DOWN},
       {ICON_BAUD_RATE,               LABEL_ON},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
+      {ICON_NULL,                    LABEL_NULL},
+      {ICON_NULL,                    LABEL_NULL},
       {ICON_BACK,                    LABEL_BACK},
     }
   };

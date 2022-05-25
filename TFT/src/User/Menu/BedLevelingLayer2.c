@@ -9,12 +9,12 @@ void menuBedLevelingLayer2(void)
     // icon                          label
     {
       {ICON_LEVELING,                LABEL_START},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
-      {ICON_BACKGROUND,              LABEL_BACKGROUND},
+      {ICON_NULL,                    LABEL_NULL},
+      {ICON_NULL,                    LABEL_NULL},
+      {ICON_NULL,                    LABEL_NULL},
+      {ICON_NULL,                    LABEL_NULL},
+      {ICON_NULL,                    LABEL_NULL},
+      {ICON_NULL,                    LABEL_NULL},
       {ICON_BACK,                    LABEL_BACK},
     }
   };
@@ -37,6 +37,7 @@ void menuBedLevelingLayer2(void)
 
     case BL_MBL:
       bedLevelingLayer2Items.title.index = LABEL_MBL_SETTINGS;
+      break;
 
     default:
       break;

@@ -2,15 +2,16 @@
 #define _LANGUAGE_CZ_H_
 
     // config.ini Parameter Settings - Screen Settings and Feature Settings
+    #define STRING_LANGUAGE               "Čeština"
     #define STRING_EMULATED_M600          "Emulace M600"
     #define STRING_EMULATED_M109_M190     "Emulace M109 / M190"
+    #define STRING_EVENT_LED              "LED události"
     #define STRING_FILE_COMMENT_PARSING   "Analýzovat komentáře"
     #define STRING_ROTATED_UI             "Otočit UI"
-    #define STRING_LANGUAGE               "Čeština"
     #define STRING_ACK_NOTIFICATION       "Styl oznámení ACK"
     #define STRING_FILES_SORT_BY          "Řazení souboru"
     #define STRING_FILES_LIST_MODE        "Soubory jako seznam"
-    #define STRING_FILENAME_EXTENSION     "Show filename extension"
+    #define STRING_FILENAME_EXTENSION     "Zobrazit příponu souboru"
     #define STRING_FAN_SPEED_PERCENTAGE   "Rychlost ventilátoru v %"
     #define STRING_PERSISTENT_INFO        "Zobrazení stavových ikon"
     #define STRING_TERMINAL_ACK           "zobrazit ACK Terminálu"
@@ -35,6 +36,7 @@
     #define STRING_LCD_IDLE_BRIGHTNESS    "LCD snížení jasu"
     #define STRING_LCD_IDLE_TIME          "LCD snížení jasu po"
     #define STRING_LCD_LOCK_ON_IDLE       "Blok. dotek při zatmavení"
+    #define STRING_LED_ALWAYS_ON          "LED vždy zapnuto"
     #define STRING_KNOB_LED_COLOR         "Rotační knob LED"
     #define STRING_KNOB_LED_IDLE          "Rotační knob LED idle"
     #define STRING_START_GCODE_ENABLED    "Spustit Gcode před tiskem"
@@ -57,6 +59,7 @@
     #define STRING_STEALTH_CHOP           "TMC Tichý režim"
     #define STRING_DELTA_CONFIGURATION    "Delta konfigurace"
     #define STRING_DELTA_TOWER_ANGLE      "Úhel věže"
+    #define STRING_DELTA_DIAGONAL_ROD     "Diagonální tyč"
     #define STRING_DELTA_ENDSTOP          "Nastavení dorazu"
     #define STRING_PROBE_OFFSET           "Offset sondy"
     #define STRING_LIN_ADVANCE            "Linear Advance"
@@ -159,17 +162,20 @@
     #define STRING_PROCESS_COMPLETED      "Proces dokončen!"
     #define STRING_PROCESS_ABORTED        "Proces přerušen!"
 
-    // TFT SD, U_DISK, Onboard SD, Filament Runout Process Commands / Status / Info
-    #define STRING_TFTSD                  "TFT SD"
-    #define STRING_READ_TFTSD_ERROR       "Chyba při čtení SD karty!"
-    #define STRING_TFTSD_INSERTED         "SD karta vložena!"
-    #define STRING_TFTSD_REMOVED          "SD karta vyjmuta!"
-    #define STRING_U_DISK                 "USB Disk"
-    #define STRING_READ_U_DISK_ERROR      "Chyba při čtení USB disku!"
-    #define STRING_U_DISK_INSERTED        "USB disk  vložen!"
-    #define STRING_U_DISK_REMOVED         "USB disk vyjmut!"
-    #define STRING_ONBOARDSD              "Onboard SD"
-    #define STRING_READ_ONBOARDSD_ERROR   "Chyba při čtení Onboard SD!"
+    // TFT Media, Onboard Media, Filament Runout Process Commands / Status / Info
+    #define STRING_TFT_SD                 "TFT SD"
+    #define STRING_TFT_SD_READ_ERROR      "Chyba při čtení SD karty!"
+    #define STRING_TFT_SD_INSERTED        "SD karta vložena!"
+    #define STRING_TFT_SD_REMOVED         "SD karta vyjmuta!"
+    #define STRING_TFT_SD_NOT_DETECTED    "SD karta není detekována."
+    #define STRING_TFT_USB                "USB Disk"
+    #define STRING_TFT_USB_READ_ERROR     "Chyba při čtení USB disku!"
+    #define STRING_TFT_USB_INSERTED       "USB disk  vložen!"
+    #define STRING_TFT_USB_REMOVED        "USB disk vyjmut!"
+    #define STRING_TFT_USB_NOT_DETECTED   "USB není detekován."
+    #define STRING_ONBOARD_SD             "Onboard SD"
+    #define STRING_ONBOARD_USB            "Onboard USB"
+    #define STRING_ONBOARD_SD_READ_ERROR  "Chyba při čtení Onboard media!"
     #define STRING_FILAMENT_RUNOUT        "Došel filament!"
 
     // Steppers, Print, Probe Process Commands / Status / Info
@@ -185,6 +191,8 @@
     #define STRING_DEPLOY                 "Vysunout"
     #define STRING_STOW                   "Zasunout"
     #define STRING_REPEAT                 "Přesnost"
+    #define STRING_HS_ON                  "HS: On"
+    #define STRING_HS_OFF                 "HS: Off"
 
     // Printer Tools
     #define STRING_NOZZLE                 "Tryska"
@@ -289,6 +297,7 @@
     #define STRING_ABL_SLOT_EEPROM        "Uložit síť do EEPROM a načíst po restartu?"
     #define STRING_ABL_Z                  "Z-Slábnutí"
     #define STRING_LEVEL_CORNER           "L Rohu"
+    #define STRING_LEVEL_CORNER_INFO      "Edge distance is below probe offset X/Y and some target points could be not reachable.\nDo you want to use a safe edge distance?"
     #define STRING_P_OFFSET               "P Offset"
     #define STRING_H_OFFSET               "H Offset"
     #define STRING_DISTANCE               "Od okraje"

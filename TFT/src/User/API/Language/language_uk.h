@@ -2,11 +2,12 @@
 #define _LANGUAGE_UK_H_
 
     // config.ini Parameter Settings - Screen Settings and Feature Settings
+    #define STRING_LANGUAGE               "Українська"
     #define STRING_EMULATED_M600          "Emulated M600"
     #define STRING_EMULATED_M109_M190     "Emulated M109 / M190"
+    #define STRING_EVENT_LED              "Event LED"
     #define STRING_FILE_COMMENT_PARSING   "File comment parsing"
     #define STRING_ROTATED_UI             "Повернути інтерфейс"
-    #define STRING_LANGUAGE               "Українська"
     #define STRING_ACK_NOTIFICATION       "ACK стиль повідомлення"
     #define STRING_FILES_SORT_BY          "Sort files by"
     #define STRING_FILES_LIST_MODE        "Файли в режимі рядків"
@@ -35,6 +36,7 @@
     #define STRING_LCD_IDLE_BRIGHTNESS    "Регулювання яскравості LCD"
     #define STRING_LCD_IDLE_TIME          "Час до загасання LCD"
     #define STRING_LCD_LOCK_ON_IDLE       "LCD lock on idle"
+    #define STRING_LED_ALWAYS_ON          "LED always ON"
     #define STRING_KNOB_LED_COLOR         "Підсвічування енкодера"
     #define STRING_KNOB_LED_IDLE          "Простій підсвічування енкодера"
     #define STRING_START_GCODE_ENABLED    "Розпочати G-код перед друком"
@@ -57,6 +59,7 @@
     #define STRING_STEALTH_CHOP           "TMC StealthChop"
     #define STRING_DELTA_CONFIGURATION    "Delta Configuration"
     #define STRING_DELTA_TOWER_ANGLE      "Tower Angle Trim"
+    #define STRING_DELTA_DIAGONAL_ROD     "Diagonal Rod Trim"
     #define STRING_DELTA_ENDSTOP          "Endstop Adjustments"
     #define STRING_PROBE_OFFSET           "Зміщення датчика"
     #define STRING_LIN_ADVANCE            "К-фактор"
@@ -159,17 +162,20 @@
     #define STRING_PROCESS_COMPLETED      "Процес завершений!"
     #define STRING_PROCESS_ABORTED        "Процес перерваний!"
 
-    // TFT SD, U_DISK, Onboard SD, Filament Runout Process Commands / Status / Info
-    #define STRING_TFTSD                  "SD екрану"
-    #define STRING_READ_TFTSD_ERROR       "Не можу прочитати SD картку!"
-    #define STRING_TFTSD_INSERTED         "SD карта вставлена!"
-    #define STRING_TFTSD_REMOVED          "SD карта витягнута!"
-    #define STRING_U_DISK                 "Флеш карта"
-    #define STRING_READ_U_DISK_ERROR      "Не можу прочитати флеш картку!"
-    #define STRING_U_DISK_INSERTED        "Флеш карта вставлена!"
-    #define STRING_U_DISK_REMOVED         "Флеш карта витягнута!"
-    #define STRING_ONBOARDSD              "SD на платі"
-    #define STRING_READ_ONBOARDSD_ERROR   "Не можу прочитати SD картку!"
+    // TFT Media, Onboard Media, Filament Runout Process Commands / Status / Info
+    #define STRING_TFT_SD                 "SD екрану"
+    #define STRING_TFT_SD_READ_ERROR      "Не можу прочитати SD картку!"
+    #define STRING_TFT_SD_INSERTED        "SD карта вставлена!"
+    #define STRING_TFT_SD_REMOVED         "SD карта витягнута!"
+    #define STRING_TFT_SD_NOT_DETECTED    "No SD Card detected.\nPlease insert an SD Card."
+    #define STRING_TFT_USB                "Флеш карта"
+    #define STRING_TFT_USB_READ_ERROR     "Не можу прочитати флеш картку!"
+    #define STRING_TFT_USB_INSERTED       "Флеш карта вставлена!"
+    #define STRING_TFT_USB_REMOVED        "Флеш карта витягнута!"
+    #define STRING_TFT_USB_NOT_DETECTED   "No USB Disk detected."
+    #define STRING_ONBOARD_SD             "SD на платі"
+    #define STRING_ONBOARD_USB            "USB на платі"
+    #define STRING_ONBOARD_SD_READ_ERROR  "Не можу прочитати SD картку!"
     #define STRING_FILAMENT_RUNOUT        "Філамент закінчився"
 
     // Steppers, Print, Probe Process Commands / Status / Info
@@ -185,6 +191,8 @@
     #define STRING_DEPLOY                 "BLT вниз"
     #define STRING_STOW                   "BLT вгору"
     #define STRING_REPEAT                 "Точність Z"
+    #define STRING_HS_ON                  "HS: On"
+    #define STRING_HS_OFF                 "HS: Off"
 
     // Printer Tools
     #define STRING_NOZZLE                 "Сопло"
@@ -289,6 +297,7 @@
     #define STRING_ABL_SLOT_EEPROM        "Пам'ятати слот при перезавантаженні? (Зберегти в EEPROM)"
     #define STRING_ABL_Z                  "Z загасання"
     #define STRING_LEVEL_CORNER           "L corner"
+    #define STRING_LEVEL_CORNER_INFO      "Edge distance is below probe offset X/Y and some target points could be not reachable.\nDo you want to use a safe edge distance?"
     #define STRING_P_OFFSET               "Відступ P"
     #define STRING_H_OFFSET               "Відступ H"
     #define STRING_DISTANCE               "Відступи"

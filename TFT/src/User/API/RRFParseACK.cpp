@@ -77,7 +77,7 @@ void ParseACKJsonParser::endDocument()
     _setDialogTitleStr((uint8_t *)(m291_title == NULL ? M291 : m291_title));
     _setDialogMsgStr((uint8_t *)m291_msg);
     _setDialogOkTextLabel(LABEL_CONFIRM);
-    _setDialogCancelTextLabel(m291_mode > 2 ? LABEL_CANCEL : LABEL_BACKGROUND);
+    _setDialogCancelTextLabel(m291_mode > 2 ? LABEL_CANCEL : LABEL_NULL);
     expire_time = m291_timeo > 0 ? OS_GetTimeMs() + m291_timeo : 0;
     showDialog(m291_mode > 2 ? DIALOG_TYPE_QUESTION : DIALOG_TYPE_INFO, m291_confirm,
         m291_mode > 2 ? m291_cancel : NULL, m291_loop);
@@ -188,7 +188,7 @@ void ParseACKJsonParser::value(const char *value)
       strcpy(m291_title, value);
       break;
     case mbox_timeo:
-      m291_timeo = strtod((char *)value, NULL) * 1000;
+      m291_timeo = SEC_TO_MS(strtod((char *)value, NULL));
       break;
     case resp:
       if (strstr(value, (char *)"Steps/"))       //parse M92
@@ -235,7 +235,7 @@ void ParseACKJsonParser::value(const char *value)
     case result:
         if (starting_print)
         {
-          printRemoteStart(value);
+          startRemotePrint(value);  // start print and open Printing menu
           starting_print = false;
         }
       break;

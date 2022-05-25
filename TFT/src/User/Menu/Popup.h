@@ -30,15 +30,15 @@ void _setDialogCancelTextLabel(int16_t index);
 
 #define setDialogTitle(x) _Generic(((x+0)), const uint8_t*: _setDialogTitleStr, \
                                                   uint8_t*: _setDialogTitleStr, \
-                                                  default: _setDialogTitleLabel)(x)
+                                                   default: _setDialogTitleLabel)(x)
 #define setDialogMsg(x) _Generic(((x+0)), const uint8_t*: _setDialogMsgStr, \
                                                 uint8_t*: _setDialogMsgStr, \
-                                                default: _setDialogMsgLabel)(x)
+                                                 default: _setDialogMsgLabel)(x)
 #define setDialogOkText(x) _Generic(((x+0)), const uint8_t*: _setDialogOkTextStr, \
                                                    uint8_t*: _setDialogOkTextStr, \
-                                                   default: _setDialogOkTextLabel)(x)
-#define setDialogCancelText(x)  _Generic(((x+0)), const uint8_t*: _setDialogCancelTextStr, \
-                                                        uint8_t*: _setDialogCancelTextStr, \
+                                                    default: _setDialogOkTextLabel)(x)
+#define setDialogCancelText(x) _Generic(((x+0)), const uint8_t*: _setDialogCancelTextStr, \
+                                                       uint8_t*: _setDialogCancelTextStr, \
                                                         default: _setDialogCancelTextLabel)(x)
 
 //set text from LABEL index or pointer (uint8_t*)
@@ -57,10 +57,10 @@ void menuDialog(void);
 void showDialog(DIALOG_TYPE type, void (*ok_action)(), void (*cancel_action)(), void (*loop_action)());
 void loopPopup(void);
 
-#define popupReminder(_type, _title, _msg)                        \
-  {                                                               \
-    setDialogText(_title, _msg, LABEL_CONFIRM, LABEL_BACKGROUND); \
-    showDialog(_type, NULL, NULL, NULL);                          \
+#define popupReminder(_type, _title, _msg)                  \
+  {                                                         \
+    setDialogText(_title, _msg, LABEL_CONFIRM, LABEL_NULL); \
+    showDialog(_type, NULL, NULL, NULL);                    \
   }
 
 #ifdef __cplusplus
