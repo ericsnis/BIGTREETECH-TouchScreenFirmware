@@ -35,22 +35,7 @@ char * getDynamicTextValue(uint8_t i)
 // save dynamic value (upto 7 digits) ( i : index of the value position, value:float value)
 void setDynamicValue(uint8_t i, float value)
 {
-  float n = ABS(value);
-  uint8_t neg = value < 0.0f;
-  char * format;
-
-  if (n < 10.0f && !neg)  // upto 9.99999
-    format = "%.5f";
-  if ((n < 100.0f && !neg) || (n < 10.0f && neg))  // upto 99.9999 or -9.9999 (negative sign takes 1 character space)
-    format = "%.4f";
-  else if ((n < 1000.0f && !neg) || (n < 100.0f && neg))  // upto 999.999 or -99.999
-    format = "%.3f";
-  else if ((n < 10000.0f && !neg) || (n < 1000.0f && neg))  // upto 9999.99 or -999.99
-    format = "%.2f";
-  else
-    format = "%.1f";
-
-  sprintf(dynamic_text_value[i], format, value);
+  snprintf(dynamic_text_value[i], 8, "%.5f", value);
 }
 
 // draw item pressed feedback
@@ -86,12 +71,13 @@ void ListItem_Display(const GUI_RECT * rect, uint8_t position, const LISTITEM * 
       {
         drawCharIcon(rect, CENTER, curitem->icon, true, infoSettings.list_button_bg_color);
       }
-      else if (curitem->icon == CHARICON_BLANK && curitem->titlelabel.index != LABEL_NULL)
+      else if (curitem->titlelabel.index != LABEL_NULL)
       {
         GUI_SetBkColor(infoSettings.list_button_bg_color);
         GUI_ClearPrect(rect);
         GUI_DispStringInPrect(rect, curitem->titlelabel.index);
       }
+
       if (pressed)
       {
         GUI_SetColor(LI_KEY_PRESSED_COLOR);
@@ -200,10 +186,7 @@ void ListItem_DisplayToggle(uint16_t sx, uint16_t sy, uint8_t iconchar_state)
   GUI_SetTextMode(GUI_TEXTMODE_TRANS);
   GUI_SetColor(charIconColor[iconchar_state]);
 
-  if (iconchar_state == CHARICON_TOGGLE_OFF)
-    _GUI_DispString(sx, sy, IconCharSelect(CHARICON_TOGGLE_SWITCH));
-  else
-    _GUI_DispString(sx + BYTE_HEIGHT, sy, IconCharSelect(CHARICON_TOGGLE_SWITCH));
+  _GUI_DispString(sx + (iconchar_state == CHARICON_TOGGLE_OFF ? 0 : BYTE_HEIGHT), sy, IconCharSelect(CHARICON_TOGGLE_SWITCH));
 
   GUI_RestoreColorDefault();
 }

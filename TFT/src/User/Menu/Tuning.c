@@ -12,9 +12,9 @@ void menuTuning(void)
       {ICON_MPC_PID,                 LABEL_PID},
       {ICON_TUNE_EXTRUDER,           LABEL_TUNE_EXTRUDER},
       #if DELTA_PROBE_TYPE == 0  // if not Delta printer
-        {ICON_PROBE_OFFSET,          LABEL_H_OFFSET},
+        {ICON_PROBE_OFFSET,            LABEL_H_OFFSET},
       #else
-        {ICON_NULL,                  LABEL_NULL},
+        {ICON_NULL,                    LABEL_NULL},
       #endif
       {ICON_NULL,                    LABEL_NULL},
       {ICON_NULL,                    LABEL_NULL},
@@ -26,16 +26,20 @@ void menuTuning(void)
   KEY_VALUES key_num = KEY_IDLE;
 
   if (!hasMPC())
+  {
     for (uint8_t i = 0; i < 4; i++)
     {
       TuningItems.items[i] = TuningItems.items[i + 1];
     }
+  }
   else if (!infoSettings.bed_en)
+  {
     for (uint8_t i = 1; i < 4; i++)
     {
       TuningItems.items[i] = TuningItems.items[i + 1];
     }
-  
+  }
+
   menuDrawPage(&TuningItems);
 
   while (MENU_IS(menuTuning))

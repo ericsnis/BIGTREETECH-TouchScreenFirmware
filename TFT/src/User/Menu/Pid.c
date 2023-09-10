@@ -9,7 +9,7 @@ const char *const pidCmdRRF[] = PID_CMD_RRF;
 static int16_t pidHeaterTarget[MAX_HEATER_PID_COUNT] = {0};
 static uint8_t curTool_index = NOZZLE0;
 static uint8_t degreeSteps_index = 1;
-uint32_t pidTimeout = 0;
+static uint32_t pidTimeout = 0;
 static PID_STATUS pidStatus = PID_IDLE;
 
 // called by parseAck() to notify PID process status
@@ -50,8 +50,10 @@ void pidRun(void)
 static inline void pidStart(void)
 {
   pidTimeout = OS_GetTimeMs() + PID_PROCESS_TIMEOUT;  // set timeout for overall PID process
+
   LED_SetEventColor(&ledRed, false);  // set (neopixel) LED light to RED
   LCD_SET_KNOB_LED_IDLE(false);       // set infoSettings.knob_led_idle temporary to OFF
+
   pidRun();
 }
 
@@ -87,8 +89,7 @@ void pidResultAction(void)
       {
         sprintf(&tempMsg[strlen(tempMsg)], "\n %s", textSelect(LABEL_EEPROM_SAVE_INFO));
 
-        setDialogText(LABEL_PID_TITLE, (uint8_t *) tempMsg, LABEL_CONFIRM, LABEL_CANCEL);
-        showDialog(DIALOG_TYPE_SUCCESS, saveEepromSettings, NULL, NULL);
+        popupDialog(DIALOG_TYPE_SUCCESS, LABEL_PID_TITLE, (uint8_t *) tempMsg, LABEL_CONFIRM, LABEL_CANCEL, saveEepromSettings, NULL, NULL);
       }
       else
       {
@@ -112,6 +113,7 @@ void pidResultAction(void)
   if (checkFirstValidPID() == MAX_HEATER_PID_COUNT)  // no more tools left, PID autotune finished
   {
     pidStatus = PID_IDLE;
+
     LED_SetEventColor(&ledGreen, false);  // set (neopixel) LED light to GREEN
   }
 }
@@ -144,7 +146,7 @@ void menuPid(void)
   pidItems.items[KEY_ICON_5] = itemDegreeSteps[degreeSteps_index];
 
   menuDrawPage(&pidItems);
-  temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], false);
+  temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], true);
 
   while (MENU_IS(menuPid))
   {
@@ -158,10 +160,9 @@ void menuPid(void)
         case KEY_DECREASE:
           if (pidHeaterTarget[curTool_index] > 0)
             pidHeaterTarget[curTool_index] =
-                NOBEYOND(0, pidHeaterTarget[curTool_index] - degreeSteps[degreeSteps_index],
-                        infoSettings.max_temp[curTool_index]);
+              NOBEYOND(0, pidHeaterTarget[curTool_index] - degreeSteps[degreeSteps_index], infoSettings.max_temp[curTool_index]);
 
-          temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], true);
+          temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], false);
           break;
 
         case KEY_INFOBOX:
@@ -171,7 +172,7 @@ void menuPid(void)
           if (val != pidHeaterTarget[curTool_index])  // if value is different than target, change it
             pidHeaterTarget[curTool_index] = val;
 
-          temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], false);
+          temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], true);
           break;
         }
 
@@ -179,10 +180,9 @@ void menuPid(void)
         case KEY_INCREASE:
           if (pidHeaterTarget[curTool_index] < infoSettings.max_temp[curTool_index])
             pidHeaterTarget[curTool_index] =
-                NOBEYOND(0, pidHeaterTarget[curTool_index] + degreeSteps[degreeSteps_index],
-                        infoSettings.max_temp[curTool_index]);
+              NOBEYOND(0, pidHeaterTarget[curTool_index] + degreeSteps[degreeSteps_index], infoSettings.max_temp[curTool_index]);
 
-          temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], true);
+          temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], false);
           break;
 
         case KEY_ICON_4:
@@ -196,15 +196,15 @@ void menuPid(void)
             pidItems.items[key_num] = itemTool[curTool_index];
 
             menuDrawItem(&pidItems.items[key_num], key_num);
-            temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], false);
-            break;
-
-          case KEY_ICON_5:
-            degreeSteps_index = (degreeSteps_index + 1) % ITEM_DEGREE_NUM;
-            pidItems.items[key_num] = itemDegreeSteps[degreeSteps_index];
-
-            menuDrawItem(&pidItems.items[key_num], key_num);
+            temperatureReDraw(curTool_index, &pidHeaterTarget[curTool_index], true);
           }
+          break;
+
+        case KEY_ICON_5:
+          degreeSteps_index = (degreeSteps_index + 1) % ITEM_DEGREE_NUM;
+          pidItems.items[key_num] = itemDegreeSteps[degreeSteps_index];
+
+          menuDrawItem(&pidItems.items[key_num], key_num);
           break;
 
         case KEY_ICON_6:
@@ -214,8 +214,7 @@ void menuPid(void)
           }
           else
           {
-            setDialogText(pidItems.title.index, LABEL_TUNE_START_INFO, LABEL_CONFIRM, LABEL_CANCEL);
-            showDialog(DIALOG_TYPE_QUESTION, pidStart, NULL, NULL);
+            popupDialog(DIALOG_TYPE_QUESTION, pidItems.title.index, LABEL_TUNE_START_INFO, LABEL_CONFIRM, LABEL_CANCEL, pidStart, NULL, NULL);
           }
           break;
 
@@ -234,10 +233,7 @@ void menuPid(void)
     else
     {
       if (getMenuType() != MENU_TYPE_SPLASH)
-      {
-        setDialogText(LABEL_SCREEN_INFO, LABEL_BUSY, LABEL_NULL, LABEL_NULL);
-        showDialog(DIALOG_TYPE_INFO, NULL, NULL, NULL);
-      }
+        popupSplash(DIALOG_TYPE_INFO, LABEL_SCREEN_INFO, LABEL_BUSY);
 
       if (OS_GetTimeMs() > pidTimeout)
         pidUpdateStatus(PID_TIMEOUT);

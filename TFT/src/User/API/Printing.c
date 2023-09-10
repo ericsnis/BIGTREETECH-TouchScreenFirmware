@@ -3,31 +3,31 @@
 
 typedef struct
 {
-  FIL                file;
-  uint32_t           size;                // gcode file total size
-  uint32_t           cur;                 // gcode file printed size
-  uint32_t           fileOffset;          // size of non-printing lines (calculated dynamically)
-  uint32_t           expectedTime;        // expected print duration in sec
-  uint32_t           elapsedTime;         // current elapsed time in sec
-  uint32_t           remainingTime;       // current remaining time in sec
-  uint16_t           layerNumber;         // current printing layer number
-  uint16_t           layerCount;          // total number of layers
-  uint8_t            progress;            // printing progress in percentage (0% - 100%)
-  PROG_FROM          progressSource;      // source for progress (file progress, time progress, progress from slicer)
-  bool               runout;              // 1: runout in printing, 0: idle
-  bool               printing;            // 1: means printing, 0: means idle
-  bool               paused;              // 1: means paused
-  bool               aborted;             // 1: means aborted
-  PAUSE_TYPE         pauseType;           // pause type trigged by different sources and gcodes like M0 & M600
+  FIL        file;
+  uint32_t   size;            // gcode file total size
+  uint32_t   cur;             // gcode file printed size
+  uint32_t   fileOffset;      // size of non-printing lines (calculated dynamically)
+  uint32_t   expectedTime;    // expected print duration in sec
+  uint32_t   elapsedTime;     // current elapsed time in sec
+  uint32_t   remainingTime;   // current remaining time in sec
+  uint16_t   layerNumber;     // current printing layer number
+  uint16_t   layerCount;      // total number of layers
+  PROG_FROM  progressSource;  // source for progress (file progress, time progress, progress from slicer)
+  uint8_t    progress;        // printing progress in percentage (0% - 100%)
+  bool       runout;          // 1: runout in printing, 0: idle
+  bool       printing;        // 1: means printing, 0: means idle
+  bool       paused;          // 1: means paused
+  bool       aborted;         // 1: means aborted
+  PAUSE_TYPE pauseType;       // pause type trigged by different sources and gcodes like M0 & M600
 } PRINTING;
 
 PRINTING infoPrinting = {0};
-PRINT_SUMMARY infoPrintSummary = {.name[0] = '\0', 0, 0, 0, 0};
+PRINT_SUMMARY infoPrintSummary = {.name[0] = '\0', 0, 0, 0, 0, false};
 
-static bool updateM27_waiting = false;
+static bool updateM27Waiting = false;
 static bool extrusionDuringPause = false;  // flag for extrusion during Print -> Pause
-static float last_E_pos;
-bool filamentRunoutAlarm;
+static bool filamentRunoutAlarm = false;
+static float lastEPos = 0;                 // used only to update stats in infoPrintSummary
 
 void setExtrusionDuringPause(bool extruded)
 {
@@ -49,25 +49,67 @@ bool getRunoutAlarm(void)
   return filamentRunoutAlarm;
 }
 
+void clearQueueAndMore(void)
+{
+  clearCmdQueue();
+  setRunoutAlarmFalse();
+  heatSetUpdateWaiting(false);
+  setPrintUpdateWaiting(false);
+}
+
 void breakAndContinue(void)
 {
-  setRunoutAlarmFalse();
-  clearCmdQueue();
-  Serial_Puts(SERIAL_PORT, "M108\n");
+  clearQueueAndMore();
+  sendEmergencyCmd("M108\n");
 }
 
 void resumeAndPurge(void)
 {
-  setRunoutAlarmFalse();
-  clearCmdQueue();
-  Serial_Puts(SERIAL_PORT, "M876 S0\n");
+  clearQueueAndMore();
+  sendEmergencyCmd("M876 S0\n");
 }
 
 void resumeAndContinue(void)
 {
-  setRunoutAlarmFalse();
-  clearCmdQueue();
-  Serial_Puts(SERIAL_PORT, "M876 S1\n");
+  clearQueueAndMore();
+  sendEmergencyCmd("M876 S1\n");
+}
+
+void abortAndTerminate(void)
+{
+  clearQueueAndMore();
+
+  if (infoMachineSettings.firmwareType != FW_REPRAPFW)
+  {
+    // clear the command queue and send the M524 gcode immediately if there is an already pending gcode waiting for an ACK message.
+    // Otherwise, store the gcode on command queue to send it waiting for its related ACK message
+    //
+    if (isPendingCmd())
+      sendEmergencyCmd("M524\n");
+    else
+      mustStoreCmd("M524\n");
+  }
+  else  // if RepRap
+  {
+    if (!infoPrinting.paused)
+      request_M25();  // must pause the print before cancelling it
+
+    request_M0();  // M524 is not supported in RepRap firmware
+  }
+}
+
+void loopBreakToCondition(CONDITION_CALLBACK condCallback)
+{
+  // M108 is sent to Marlin because consecutive blocking operations such as heating bed, extruder may defer processing of other gcodes.
+  // If there's any ongoing blocking command, "M108" will take that out from the closed loop and a response will be received
+  // from that command. Than another "M108" will be sent to unlock a next possible blocking command.
+  // This way enough "M108" will be sent to unlock all possible blocking command(s) (ongoing or enqueued) but not too much and
+  // not too fast one after another to overload/overrun the serial communication
+  TASK_LOOP_WHILE(condCallback(), if (Serial_Available(SERIAL_PORT) != 0) sendEmergencyCmd("M108\n"));
+
+  // remove any enqueued command that could come from a supplementary serial port or TFT media
+  // (if printing from remote host or TFT media) during the loop above
+  clearQueueAndMore();
 }
 
 void setPrintExpectedTime(uint32_t expectedTime)
@@ -145,17 +187,27 @@ uint16_t getPrintLayerCount()
   return infoPrinting.layerCount;
 }
 
-uint32_t getPrintSize(void)
+void setPrintProgressSource(PROG_FROM progressSource)
+{
+  infoPrinting.progressSource = progressSource;
+}
+
+PROG_FROM getPrintProgressSource(void)
+{
+  return infoPrinting.progressSource;
+}
+
+uint32_t getPrintDataSize(void)
 {
   return infoPrinting.size;
 }
 
-uint32_t getPrintCur(void)
+uint32_t getPrintDataCur(void)
 {
   return infoPrinting.cur;
 }
 
-void setPrintProgress(float cur, float size)
+void setPrintProgressData(float cur, float size)
 {
   infoPrinting.cur = cur;
   infoPrinting.size = size;
@@ -163,7 +215,6 @@ void setPrintProgress(float cur, float size)
 
 void setPrintProgressPercentage(uint8_t percentage)
 {
-  infoPrinting.progressSource = PROG_SLICER;
   infoPrinting.progress = percentage;
 }
 
@@ -171,19 +222,21 @@ uint8_t updatePrintProgress(void)
 {
   switch (infoPrinting.progressSource)
   {
-    case PROG_SLICER:
-      break;  //no progress update if it is controlled by slicer
-
     case PROG_FILE:
       // in case of not printing, a wrong size was set or current position at the end of file, we consider progress as 100%
       if (infoPrinting.size <= infoPrinting.cur)
         infoPrinting.progress = 100;
       else
         infoPrinting.progress = (uint8_t)((float)(infoPrinting.cur - infoPrinting.fileOffset) / (infoPrinting.size - infoPrinting.fileOffset) * 100);
+
       break;
 
+    case PROG_RRF:
+    case PROG_SLICER:
+      break;  // progress percentage already updated by the slicer or RRF direct percentage report ("fraction_printed")
+
     case PROG_TIME:
-        infoPrinting.progress = ((float)infoPrinting.elapsedTime / (infoPrinting.elapsedTime + infoPrinting.remainingTime)) * 100;
+      infoPrinting.progress = ((float)infoPrinting.elapsedTime / (infoPrinting.elapsedTime + infoPrinting.remainingTime)) * 100;
       break;
   }
 
@@ -198,16 +251,6 @@ uint8_t getPrintProgress(void)
 void setPrintRunout(bool runout)
 {
   infoPrinting.runout = runout;
-}
-
-PROG_FROM getPrintProgSource (void)
-{
-  return infoPrinting.progressSource;
-}
-
-void setPrintProgSource(PROG_FROM progressSource)
-{
-  infoPrinting.progressSource = progressSource;
 }
 
 bool getPrintRunout(void)
@@ -230,16 +273,13 @@ void shutdown(void)
 
 void shutdownLoop(void)
 {
-  bool tempIsLower = true;
-
   for (uint8_t i = NOZZLE0; i < infoSettings.hotend_count; i++)
   {
     if (heatGetCurrentTemp(i) >= infoSettings.auto_shutdown_temp)
-      tempIsLower = false;
+      return;
   }
 
-  if (tempIsLower)
-    shutdown();
+  shutdown();
 }
 
 void shutdownStart(void)
@@ -254,15 +294,13 @@ void shutdownStart(void)
     mustStoreCmd(fanCmd[i], infoSettings.fan_max[i]);
   }
 
-  setDialogText(LABEL_SHUT_DOWN, (uint8_t *)tempstr, LABEL_FORCE_SHUT_DOWN, LABEL_CANCEL);
-  showDialog(DIALOG_TYPE_INFO, shutdown, NULL, shutdownLoop);
+  popupDialog(DIALOG_TYPE_INFO, LABEL_SHUT_DOWN, (uint8_t *)tempstr, LABEL_FORCE_SHUT_DOWN, LABEL_CANCEL, shutdown, NULL, shutdownLoop);
 }
 
 void initPrintSummary(void)
 {
-  last_E_pos = coordinateGetAxis(E_AXIS);
-  infoPrintSummary = (PRINT_SUMMARY){.name[0] = '\0', 0, 0, 0, 0};
-  hasFilamentData = false;
+  lastEPos = coordinateGetAxis(E_AXIS);
+  infoPrintSummary = (PRINT_SUMMARY){.name[0] = '\0', 0, 0, 0, 0, false};
 
   // save print filename (short or long filename)
   sprintf(infoPrintSummary.name, "%." STRINGIFY(SUMMARY_NAME_LEN) "s", getPrintFilename());
@@ -306,20 +344,20 @@ void sendPrintCodes(uint8_t index)
   }
 }
 
-void printSetUpdateWaiting(bool isWaiting)
+void setPrintUpdateWaiting(bool isWaiting)
 {
-  updateM27_waiting = isWaiting;
+  updateM27Waiting = isWaiting;
 }
 
 void updatePrintUsedFilament(void)
 {
-  float E_pos = coordinateGetAxis(E_AXIS);
+  float ePos = coordinateGetAxis(E_AXIS);
 
-  if ((E_pos + MAX_RETRACT_LIMIT) < last_E_pos)  // Check whether E position reset (G92 E0)
-    last_E_pos = 0;
+  if ((ePos + MAX_RETRACT_LIMIT) < lastEPos)  // check whether E position reset (G92 E0)
+    lastEPos = 0;
 
-  infoPrintSummary.length += (E_pos - last_E_pos) / 1000;
-  last_E_pos = E_pos;
+  infoPrintSummary.length += (ePos - lastEPos) / 1000;
+  lastEPos = ePos;
 }
 
 void clearInfoPrint(void)
@@ -327,7 +365,7 @@ void clearInfoPrint(void)
   memset(&infoPrinting, 0, sizeof(PRINTING));
 }
 
-void printComplete(void)
+void completePrint(void)
 {
   infoPrinting.cur = infoPrinting.size;  // always update the print progress to 100% even if the print terminated
   infoPrinting.progress = 100;           // set progress to 100% in case progress is controlled by slicer
@@ -359,12 +397,14 @@ void printComplete(void)
   heatClearIsWaiting();
 }
 
-bool printRemoteStart(const char * filename)
+bool startPrintFromRemoteHost(const char * filename)
 {
   infoHost.status = HOST_STATUS_PRINTING;  // always set first
 
-  if (MENU_IS(menuMarlinMode))  // do not process any printing info if Marlin Mode is active
-    return false;
+  #ifdef HAS_EMULATOR
+    if (MENU_IS(menuMarlinMode))  // do not process any printing info if Marlin Mode is active
+      return false;
+  #endif
 
   // if printing from TFT media or onboard media, exit
   if (infoPrinting.printing && infoFile.source <= FS_ONBOARD_MEDIA)
@@ -394,13 +434,15 @@ bool printRemoteStart(const char * filename)
     resetInfoFile();                   // then reset infoFile (source is restored)
   }
 
-  initPrintSummary();  // init print summary as last (it requires infoFile is properly set)
+  initPrintSummary();  // init print summary as last (it requires infoFile to be properly set)
 
   return true;
 }
 
-bool printStart(void)
+bool startPrint(void)
 {
+  bool printRestore = false;
+
   // always clean infoPrinting first and then set the needed attributes
   clearInfoPrint();
 
@@ -433,7 +475,10 @@ bool printStart(void)
         powerFailedInitData();
 
         if (powerFailedCreate(infoFile.path))    // if PLR feature is enabled, open a new PLR file
+        {
+          printRestore = true;
           powerFailedlSeek(&infoPrinting.file);  // seek on PLR file
+        }
       }
 
       break;
@@ -453,7 +498,8 @@ bool printStart(void)
   // we assume infoPrinting is clean, so we need to set only the needed attributes
   infoPrinting.printing = true;
 
-  if (GET_BIT(infoSettings.send_gcodes, SEND_GCODES_START_PRINT))
+  // execute pre print start tasks
+  if (!printRestore && GET_BIT(infoSettings.send_gcodes, SEND_GCODES_START_PRINT))  // PLR continue printing, CAN NOT use start gcode
     sendPrintCodes(0);
 
   if (infoFile.source == FS_ONBOARD_MEDIA)
@@ -462,16 +508,16 @@ bool printStart(void)
     // notify the print as started (infoHost.status set to "HOST_STATUS_PRINTING")
     infoHost.status = HOST_STATUS_RESUMING;
 
-    request_M24(0);                              // start print from onboard media
     request_M27(infoSettings.m27_refresh_time);  // use gcode M27 in case of a print running from onboard media
+    request_M24(0);                              // start print from onboard media
   }
 
-  initPrintSummary();  // init print summary as last (it requires infoFile is properly set)
+  initPrintSummary();  // init print summary as last (it requires infoFile to be properly set)
 
   return true;
 }
 
-void printEnd(void)
+void endPrint(void)
 {
   // in case of printing from Marlin Mode (infoPrinting.printing set to "false"),
   // always force infoHost.status to "HOST_STATUS_IDLE"
@@ -486,6 +532,7 @@ void printEnd(void)
     case FS_TFT_SD:
     case FS_TFT_USB:
     case FS_ONBOARD_MEDIA:
+      // execute post print end tasks
       if (GET_BIT(infoSettings.send_gcodes, SEND_GCODES_END_PRINT))
         sendPrintCodes(1);
 
@@ -497,13 +544,13 @@ void printEnd(void)
   }
 
   BUZZER_PLAY(SOUND_SUCCESS);
-  printComplete();
+  completePrint();
 
   if (infoSettings.auto_shutdown)  // auto shutdown after print
     shutdownStart();
 }
 
-void printAbort(void)
+void abortPrint(void)
 {
   // used to avoid a possible loop in case an abort gcode (e.g. M524) is present in
   // the queue infoCmd and the function loopProcess() is invoked by this function
@@ -514,61 +561,54 @@ void printAbort(void)
 
   loopDetected = true;
 
+  clearQueueAndMore();
+
   switch (infoFile.source)
   {
     case FS_TFT_SD:
     case FS_TFT_USB:
-      clearCmdQueue();
+      loopBreakToCondition(&isPendingCmd);  // break a pending gcode waiting for an ACK message, if any
+      setPrintAbort();                      // finalize the print abort
       break;
 
     case FS_ONBOARD_MEDIA:
     case FS_ONBOARD_MEDIA_REMOTE:
-      // several M108 are sent to Marlin because consecutive blocking operations
-      // such as heating bed, extruder may defer processing of M524
-      breakAndContinue();
-      breakAndContinue();
-      breakAndContinue();
-      breakAndContinue();
+      popupSplash(DIALOG_TYPE_INFO, LABEL_SCREEN_INFO, LABEL_BUSY);
+      loopPopup();  // trigger the immediate draw of the above popup
 
-      if (infoMachineSettings.firmwareType != FW_REPRAPFW)
-      {
-        request_M524();
-      }
-      else  // if RepRap
-      {
-        if (!infoPrinting.paused)
-          request_M25();  // must pause the print before cancel it
+      // clear the command queue and send the M524 gcode immediately if there is an already pending gcode waiting for an ACK message.
+      // Otherwise, store the gcode on command queue to send it waiting for its related ACK message.
+      // Furthermore, forward the print cancel action to all hosts (also TFT) to notify the print cancelation
+      //
+      // NOTE: the print cancel action received by the TFT always guarantees the invokation of setPrintAbort() in parseAck.c
+      //       to finalize the print (e.g. stats) in case the ACK messages "Not SD printing" and/or "//action:cancel"
+      //       are not received from Marlin
+      //
+      abortAndTerminate();
+      mustStoreCmd("M118 P0 A1 action:cancel\n");
 
-        request_M0();  // M524 is not supported in RepRap firmware
-      }
-
-      setDialogText(LABEL_SCREEN_INFO, LABEL_BUSY, LABEL_NULL, LABEL_NULL);
-      showDialog(DIALOG_TYPE_INFO, NULL, NULL, NULL);
-
-      // let setPrintPause() (that will be called in parseAck.c by parsing ACK message for M524, M25 or M27)
-      // notify the print as aborted/completed (infoHost.status set to "HOST_STATUS_IDLE") instead of paused
-      infoHost.status = HOST_STATUS_STOPPING;
-
-      // wait until infoHost.status is set to "HOST_STATUS_IDLE" by setPrintPause()
-      loopProcessToCondition(&isHostPrinting);
-
+      // loop on break until infoHost.status is set to "HOST_STATUS_IDLE" by setPrintAbort() in parseAck.c
+      loopBreakToCondition(&isPrintingFromOnboard);
       break;
 
-    case FS_REMOTE_HOST:  // nothing to do
-      loopDetected = false;
+    case FS_REMOTE_HOST:
+      loopBreakToCondition(&isPendingCmd);  // break a pending gcode waiting for an ACK message, if any
+
+      // forward a print cancel notification to all hosts (so also the one handling the print) asking to cancel the print
+      mustStoreCmd("M118 P0 A1 action:notification remote cancel\n");
+
+      loopDetected = false;  // finally, remove lock and exit
       return;
   }
 
+  // execute post print cancel tasks
   if (GET_BIT(infoSettings.send_gcodes, SEND_GCODES_CANCEL_PRINT))
     sendPrintCodes(2);
 
-  printComplete();
-  infoPrinting.aborted = true;
-
-  loopDetected = false;
+  loopDetected = false;  // finally, remove lock and exit
 }
 
-bool printPause(bool isPause, PAUSE_TYPE pauseType)
+bool pausePrint(bool isPause, PAUSE_TYPE pauseType)
 {
   // used to avoid a possible loop in case a pause gcode (e.g. M25) is present in
   // the queue infoCmd and the function loopProcess() is invoked by this function
@@ -597,7 +637,7 @@ bool printPause(bool isPause, PAUSE_TYPE pauseType)
         {
           popupReminder(DIALOG_TYPE_ALERT, LABEL_PAUSE, LABEL_PAUSE);
         }
-        else if (pauseType == PAUSE_NORMAL)  // send command only if the pause originated from TFT
+        else if (pauseType == PAUSE_NORMAL)  // send command only for pause originated from TFT
         {
           coordinateGetAll(&tmp);
 
@@ -630,7 +670,7 @@ bool printPause(bool isPause, PAUSE_TYPE pauseType)
         {
           breakAndContinue();  // clear the queue and send a break and continue
         }
-        else if (pauseType == PAUSE_NORMAL)  // send command only if the pause originated from TFT
+        else if (pauseType == PAUSE_NORMAL)  // send command only for pause originated from TFT
         {
           if (isCoorRelative == true)    mustStoreCmd("G90\n");
           if (isExtrudeRelative == true) mustStoreCmd("M82\n");
@@ -670,14 +710,19 @@ bool printPause(bool isPause, PAUSE_TYPE pauseType)
 
       break;
 
-    case FS_REMOTE_HOST:  // nothing to do
-      loopDetected = false;
+    case FS_REMOTE_HOST:
+      if (isPause)  // forward a print pause notification to all hosts (so also the one handling the print) asking to pause the print
+        mustStoreCmd("M118 P0 A1 action:notification remote pause\n");
+      else          // forward a print resume notification to all hosts (so also the one handling the print) asking to resume the print
+        mustStoreCmd("M118 P0 A1 action:notification remote resume\n");
+
+      loopDetected = false;  // finally, remove lock and exit
       return true;
   }
 
   infoPrinting.paused = isPause;  // update pause status after pause/resume procedure
-  loopDetected = false;
 
+  loopDetected = false;  // finally, remove lock and exit
   return true;
 }
 
@@ -696,17 +741,17 @@ bool isAborted(void)
   return infoPrinting.aborted;
 }
 
-bool isTFTPrinting(void)
+bool isPrintingFromTFT(void)
 {
   return (infoPrinting.printing && infoFile.source < FS_ONBOARD_MEDIA) ? true : false;
 }
 
-bool isHostPrinting(void)
+bool isPrintingFromOnboard(void)
 {
   return (infoHost.status != HOST_STATUS_IDLE);
 }
 
-bool isRemoteHostPrinting(void)
+bool isPrintingFromRemoteHost(void)
 {
   return (infoPrinting.printing && infoFile.source == FS_REMOTE_HOST) ? true : false;
 }
@@ -721,9 +766,10 @@ void setPrintAbort(void)
     return;
   }
 
-  BUZZER_PLAY(SOUND_ERROR);
-  printComplete();
   infoPrinting.aborted = true;
+
+  BUZZER_PLAY(SOUND_ERROR);
+  completePrint();
 }
 
 void setPrintPause(HOST_STATUS hostStatus, PAUSE_TYPE pauseType)
@@ -732,15 +778,6 @@ void setPrintPause(HOST_STATUS hostStatus, PAUSE_TYPE pauseType)
   {
     infoPrinting.paused = true;
     infoPrinting.pauseType = pauseType;
-  }
-
-  // in case host is not printing, print was completed or printAbort() is aborting the print,
-  // nothing to do (infoHost.status must be set to "HOST_STATUS_IDLE" in case it is
-  // "HOST_STATUS_STOPPING" just to finalize the print abort)
-  if (infoHost.status <= HOST_STATUS_STOPPING)
-  {
-    infoHost.status = HOST_STATUS_IDLE;  // wakeup printAbort() if waiting for print completion
-    return;
   }
 
   // in case of printing from Marlin Mode (infoPrinting.printing set to "false") or printing from remote host
@@ -756,11 +793,6 @@ void setPrintResume(HOST_STATUS hostStatus)
 {
   // no need to check it is printing when setting the value to "false"
   infoPrinting.paused = false;
-
-  // in case host is not printing, print was completed or printAbort() is aborting the print,
-  // nothing to do (infoHost.status must never be changed)
-  if (infoHost.status <= HOST_STATUS_STOPPING)
-    return;
 
   // in case of printing from Marlin Mode (infoPrinting.printing set to "false") or printing from remote host
   // (e.g. OctoPrint) or infoSettings.m27_active set to "false", infoHost.status is always forced to
@@ -804,12 +836,12 @@ void loopPrintFromTFT(void)
       {
         gcode[gcode_count++] = '\n';
         gcode[gcode_count] = '\0';  // terminate string
-        storeCmdFromUART(PORT_1, gcode);
+        storeCmdFromUART(gcode, PORT_1);
 
         break;
       }
 
-      if (read_char == ';')  // if a comment was found, exit from loop. Otherwise (empty line found), continue parsing the next line
+      if (read_char == ';')  // if a comment was found then exit from loop, otherwise (empty line found) continue parsing the next line
         break;
     }
     else if (read_char == ' ' && gcode_count == 0)  // ignore initial ' ' space bytes
@@ -865,6 +897,7 @@ void loopPrintFromTFT(void)
       }
     }
   }
+
   if (gcode_count == 0)
     infoPrinting.fileOffset += ip_cur - infoPrinting.cur;
 
@@ -872,14 +905,14 @@ void loopPrintFromTFT(void)
 
   if (ip_cur == ip_size)  // in case of end of gcode file, finalize the print
   {
-    printEnd();
+    endPrint();
   }
   else if (ip_cur > ip_size)  // in case of print abort (ip_cur == ip_size + 1), display an error message and abort the print
   {
     BUZZER_PLAY(SOUND_ERROR);
     popupReminder(DIALOG_TYPE_ERROR, (infoFile.source == FS_TFT_SD) ? LABEL_TFT_SD_READ_ERROR : LABEL_TFT_USB_READ_ERROR, LABEL_PROCESS_ABORTED);
 
-    printAbort();
+    abortPrint();
   }
 }
 
@@ -900,7 +933,7 @@ void loopPrintFromOnboard(void)
 
   do
   { // WAIT FOR M27
-    if (updateM27_waiting == true)
+    if (updateM27Waiting == true)
     {
       nextCheckPrintTime = OS_GetTimeMs() + update_M27_time;
       break;
@@ -913,6 +946,6 @@ void loopPrintFromOnboard(void)
       break;
 
     nextCheckPrintTime = OS_GetTimeMs() + update_M27_time;
-    updateM27_waiting = true;
+    updateM27Waiting = true;
   } while (0);
 }

@@ -22,15 +22,7 @@ void menuCustom(void)
 
   listViewCreate(title, customItems, customcodes.count, NULL, true, NULL, NULL);
 
-  while (MENU_IS(menuCustom))
-  {
-    curIndex = listViewGetSelectedIndex();
-
-    if (curIndex < customcodes.count)
-      mustStoreScript(customcodes.gcode[curIndex]);
-
-    loopProcess();
-  }
+  TASK_LOOP_WHILE(MENU_IS(menuCustom), curIndex = listViewGetSelectedIndex(); if (curIndex < customcodes.count) mustStoreScript(customcodes.gcode[curIndex]))
 }
 
 #ifdef QUICK_EEPROM_BUTTON
@@ -65,28 +57,22 @@ void menuEepromSettings(void)
       case KEY_ICON_0:
         // save to EEPROM
         if (infoMachineSettings.EEPROM == 1)
-        {
-          setDialogText(eepromSettingsItems.title.index, LABEL_EEPROM_SAVE_INFO, LABEL_CONFIRM, LABEL_CANCEL);
-          showDialog(DIALOG_TYPE_QUESTION, saveEepromSettings, NULL, NULL);
-        }
+          popupDialog(DIALOG_TYPE_QUESTION, eepromSettingsItems.title.index, LABEL_EEPROM_SAVE_INFO,
+                      LABEL_CONFIRM, LABEL_CANCEL, saveEepromSettings, NULL, NULL);
         break;
 
       case KEY_ICON_1:
         // restore from EEPROM
         if (infoMachineSettings.EEPROM == 1)
-        {
-          setDialogText(eepromSettingsItems.title.index, LABEL_EEPROM_RESTORE_INFO, LABEL_CONFIRM, LABEL_CANCEL);
-          showDialog(DIALOG_TYPE_QUESTION, restoreEepromSettings, NULL, NULL);
-        }
+          popupDialog(DIALOG_TYPE_QUESTION, eepromSettingsItems.title.index, LABEL_EEPROM_RESTORE_INFO,
+                      LABEL_CONFIRM, LABEL_CANCEL, restoreEepromSettings, NULL, NULL);
         break;
 
       case KEY_ICON_2:
         // reset EEPROM
         if (infoMachineSettings.EEPROM == 1)
-        {
-          setDialogText(eepromSettingsItems.title.index, LABEL_EEPROM_RESET_INFO, LABEL_CONFIRM, LABEL_CANCEL);
-          showDialog(DIALOG_TYPE_QUESTION, resetEepromSettings, NULL, NULL);
-        }
+          popupDialog(DIALOG_TYPE_QUESTION, eepromSettingsItems.title.index, LABEL_EEPROM_RESET_INFO,
+                      LABEL_CONFIRM, LABEL_CANCEL, resetEepromSettings, NULL, NULL);
         break;
 
       case KEY_ICON_7:
@@ -128,15 +114,17 @@ void menuMachineSettings(void)
 
   if (infoMachineSettings.firmwareType == FW_REPRAPFW)
   {
-    ITEM no_custom = { ICON_NULL, LABEL_NULL };
-    machineSettingsItems.items[2] = no_custom;
+    machineSettingsItems.items[2].icon = ICON_NULL;
+    machineSettingsItems.items[2].label.index = LABEL_NULL;
   }
 
   KEY_VALUES curIndex = KEY_IDLE;
-  const ITEM itemCaseLight = {ICON_CASE_LIGHT, LABEL_CASE_LIGHT};
 
   if (infoMachineSettings.caseLightsBrightness == ENABLED)
-    machineSettingsItems.items[KEY_ICON_6] = itemCaseLight;
+  {
+    machineSettingsItems.items[KEY_ICON_6].icon = ICON_CASE_LIGHT;
+    machineSettingsItems.items[KEY_ICON_6].label.index = LABEL_CASE_LIGHT;
+  }
 
   menuDrawPage(&machineSettingsItems);
 

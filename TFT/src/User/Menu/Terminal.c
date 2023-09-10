@@ -1,8 +1,15 @@
 #include "Terminal.h"
 #include "includes.h"
 
-#define TERMINAL_MAX_CHAR (NOBEYOND(600, RAM_SIZE * 45, 4800))
-#define MAX_PAGE_COUNT    20
+#define MAX_GCODE_COUNT       3  // gcode history slots
+#define MAX_PAGE_COUNT        20
+#define MAX_TERMINAL_BUF_SIZE (NOBEYOND(600, RAM_SIZE * 45, 4800))
+
+typedef struct
+{
+  CMD      gcodeTable[MAX_GCODE_COUNT];  // array of gcodes
+  uint8_t  gcodeIndex;                   // current gcode index
+} KEYBOARD_DATA;
 
 typedef struct
 {
@@ -19,7 +26,16 @@ typedef struct
 
 typedef enum
 {
-  GKEY_SEND = 0,
+  KEYBOARD_VIEW = 0,
+  TERMINAL_VIEW
+} TERMINAL_WINDOW;
+
+typedef enum
+{
+  GKEY_PREV = 0,
+  GKEY_NEXT,
+  GKEY_CLEAR,
+  GKEY_SEND,
   GKEY_ABC_123,
   GKEY_SPACE,
   GKEY_DEL,
@@ -73,17 +89,20 @@ typedef enum
 // keyboard key sizes
 #define KEY_WIDTH  (LCD_WIDTH / KB_COL_COUNT + (0.5 * (LCD_WIDTH % KB_COL_COUNT > 0)))
 #define KEY_HEIGHT ROW_HEIGHT
-#define KEY_COUNT  (1 + (KB_COL_COUNT * KB_ROW_COUNT) + (CTRL_COL_COUNT))  // send + all keys + control bar keys
+#define KEY_COUNT  (3 + 1 + (KB_COL_COUNT * KB_ROW_COUNT) + (CTRL_COL_COUNT))  // text box keys + send key + all keys + control bar keys
 
 // control bar sizes
 #define CTRL_WIDTH           (LCD_WIDTH / CTRL_COL_COUNT)        // control bar button width in keyboard view
-#define TERMINAL_CTRL_WIDTH  (LCD_WIDTH / (TERM_KEY_COUNT + 1))  // control bar button width in terminal view + page textbox
+#define TERMINAL_CTRL_WIDTH  (LCD_WIDTH / (TERM_KEY_COUNT + 1))  // control bar button width in terminal view + page text box
 #define CTRL_HEIGHT          ROW_HEIGHT
 
-// value textbox inset padding
+// value text box inset padding
 #define TEXTBOX_INSET 4
 
-#define COMMAND_START_ROW 0                              // row number for textbox and send button
+// text box button inset padding
+#define TEXTBOX_BUTTON_INSET 2
+
+#define COMMAND_START_ROW 0                              // row number for text box and send button
 #define KB_START_ROW      1                              // row number for keyboard
 #define CRTL_START_ROW    (KB_START_ROW + KB_ROW_COUNT)  // row number for control bar
 
@@ -91,13 +110,19 @@ typedef enum
 #define CURSOR_H_OFFSET 2
 #define CURSOR_END_Y    ((KB_START_ROW + KB_ROW_COUNT) * KEY_HEIGHT)
 
-// gcode command draw area inside textbox
+// gcode command draw area inside text box
 const GUI_RECT textBoxRect = {             0 + TEXTBOX_INSET, (COMMAND_START_ROW + 0) * CTRL_HEIGHT + TEXTBOX_INSET,
                               3 * CTRL_WIDTH - TEXTBOX_INSET, (COMMAND_START_ROW + 1) * CTRL_HEIGHT - TEXTBOX_INSET};
 
 // keyboard rectangles
 const GUI_RECT editorKeyRect[KEY_COUNT] = {
-  // row textbox
+  // row text box + send button
+  {0 * CTRL_WIDTH + TEXTBOX_INSET + TEXTBOX_BUTTON_INSET, (COMMAND_START_ROW + 0) * CTRL_HEIGHT + TEXTBOX_INSET + TEXTBOX_BUTTON_INSET,
+   1 * CTRL_WIDTH +                 TEXTBOX_BUTTON_INSET, (COMMAND_START_ROW + 1) * CTRL_HEIGHT - TEXTBOX_INSET - TEXTBOX_BUTTON_INSET},  // Prev gcode (top row)
+  {1 * CTRL_WIDTH + (TEXTBOX_INSET / 2)                 , (COMMAND_START_ROW + 0) * CTRL_HEIGHT + TEXTBOX_INSET + TEXTBOX_BUTTON_INSET,
+   2 * CTRL_WIDTH - (TEXTBOX_INSET / 2)                 , (COMMAND_START_ROW + 1) * CTRL_HEIGHT - TEXTBOX_INSET - TEXTBOX_BUTTON_INSET},  // Next gcode (top row)
+  {2 * CTRL_WIDTH -                 TEXTBOX_BUTTON_INSET, (COMMAND_START_ROW + 0) * CTRL_HEIGHT + TEXTBOX_INSET + TEXTBOX_BUTTON_INSET,
+   3 * CTRL_WIDTH - TEXTBOX_INSET - TEXTBOX_BUTTON_INSET, (COMMAND_START_ROW + 1) * CTRL_HEIGHT - TEXTBOX_INSET - TEXTBOX_BUTTON_INSET},  // Clear gcode (top row)
   {3 * CTRL_WIDTH, COMMAND_START_ROW * CTRL_HEIGHT, 4 * CTRL_WIDTH, (COMMAND_START_ROW + 1) * CTRL_HEIGHT},  // Send (top row)
 
   // row control bar
@@ -221,7 +246,7 @@ const GUI_RECT terminalAreaRect[2] = {
 
 // keyboard keys for first layout
 const char * const gcodeKey123[KEY_COUNT] = {
-  "Send", "ABC", "Space", "Del", "Back",
+  "Prev", "Next", "Clear", "Send", "ABC", "Space", "Del", "Back",
   #if KB_COL_COUNT == LAYOUT_1_COL_COUNT
     "1", "2", "3", "M", "G", "T",
     "4", "5", "6", "X", "Y", "Z",
@@ -244,7 +269,7 @@ const char * const gcodeKey123[KEY_COUNT] = {
 
 // keyboard keys for second layout
 const char * const gcodeKeyABC[KEY_COUNT] = {
-  "Send", "123", "Space", "Del", "Back",
+  "Prev", "Next", "Clear", "Send", "123", "Space", "Del", "Back",
   #if KB_COL_COUNT == LAYOUT_1_COL_COUNT
     "A", "B", "C", "D", "H", "I",
     "J", "K", "L", "N", "O", "P",
@@ -288,9 +313,10 @@ const uint16_t fontSrcColor[3][3] = {
   {COLORSCHEME3_TERM_GCODE, COLORSCHEME3_TERM_ACK, COLORSCHEME3_TERM_BACK},  // High Contrast
 };
 
-char * terminalBuf;
+KEYBOARD_DATA * keyboardData;
 TERMINAL_DATA * terminalData;
-uint8_t curView = 0;
+char * terminalBuf;
+TERMINAL_WINDOW curView = KEYBOARD_VIEW;
 
 bool numpad =
   #if defined(KB_TYPE_QWERTY)
@@ -306,80 +332,158 @@ static inline void keyboardDrawButton(uint8_t index, uint8_t isPressed)
 
   // setup colors and button info
   #ifdef KEYBOARD_MATERIAL_THEME
-    uint16_t fontcolor = CTRL_FONT_COLOR;
-    uint16_t bgcolor = KEY_BG_COLOR;
+    uint16_t fontColor = CTRL_FONT_COLOR;
+    uint16_t bgColor = KEY_BG_COLOR;
     GUI_RECT rectBtn = {editorKeyRect[index].x0 + 3, editorKeyRect[index].y0 + 3,
                         editorKeyRect[index].x1 - 3, editorKeyRect[index].y1 - 3};
 
     switch (index)
     {
       case GKEY_SEND:
-        bgcolor = CTRL_SEND_BG_COLOR;
+        bgColor = CTRL_SEND_BG_COLOR;
         break;
 
       case GKEY_BACK:
-        bgcolor = CTRL_BACK_BG_COLOR;
+        bgColor = CTRL_BACK_BG_COLOR;
         break;
 
       case GKEY_ABC_123:
-        bgcolor = CTRL_ABC_BG_COLOR;
+        bgColor = CTRL_ABC_BG_COLOR;
         break;
 
       default:
-        fontcolor = KEY_FONT_COLOR;
+        if (index < GKEY_SEND)  // if pressed a key on text box
+        {
+          fontColor = TEXTBOX_FONT_COLOR;
+          bgColor = CTRL_ABC_BG_COLOR;
+        }
+        else
+        {
+          fontColor = KEY_FONT_COLOR;
+        }
         break;
     }
 
-    BUTTON btn = {.fontColor  = fontcolor,
-                  .backColor  = bgcolor,
+    BUTTON btn = {.fontColor  = fontColor,
+                  .backColor  = bgColor,
                   .context    = (uint8_t *)((numpad) ? gcodeKey123[index] : gcodeKeyABC[index]),
-                  .lineColor  = bgcolor,
+                  .lineColor  = bgColor,
                   .lineWidth  = 0,
-                  .pBackColor = fontcolor,
-                  .pFontColor = bgcolor,
-                  .pLineColor = fontcolor,
+                  .pBackColor = fontColor,
+                  .pFontColor = bgColor,
+                  .pLineColor = fontColor,
                   .radius     = BTN_ROUND_CORNER,
                   .rect       = rectBtn};
 
-    if (index != GKEY_SEND)
-      setFontSize(FONT_SIZE_LARGE);
+    setFontSize(index > GKEY_SEND ? FONT_SIZE_LARGE : FONT_SIZE_NORMAL);
 
     // draw button
     GUI_DrawButton(&btn, isPressed);
-    setFontSize(FONT_SIZE_NORMAL);
+
+    if (index < GKEY_SEND)  // if key on text box, draw a status info on Send button area
+    {
+      char statusText[10];
+
+      if (isPressed)  // if pressed key
+      {
+        if (index < GKEY_CLEAR)
+        {
+          keyboardData->gcodeIndex = (keyboardData->gcodeIndex + MAX_GCODE_COUNT + (2 * (index == GKEY_NEXT)) - 1) % MAX_GCODE_COUNT;
+          sprintf(statusText, "%s %d/%d", gcodeKey123[index], keyboardData->gcodeIndex + 1, MAX_GCODE_COUNT);
+        }
+        else
+        {
+          strcpy(statusText, gcodeKey123[GKEY_CLEAR]);
+        }
+      }
+      else  // if released key
+      {
+        strcpy(statusText, gcodeKey123[GKEY_SEND]);
+      }
+
+      rectBtn = (GUI_RECT){editorKeyRect[GKEY_SEND].x0 + 3, editorKeyRect[GKEY_SEND].y0 + 3,
+                           editorKeyRect[GKEY_SEND].x1 - 3, editorKeyRect[GKEY_SEND].y1 - 3};
+
+      fontColor = CTRL_FONT_COLOR;
+      bgColor = CTRL_SEND_BG_COLOR;
+
+      BUTTON btn2 = {.fontColor  = fontColor,
+                     .backColor  = bgColor,
+                     .context    = (uint8_t *) statusText,
+                     .lineColor  = bgColor,
+                     .lineWidth  = 0,
+                     .pBackColor = fontColor,
+                     .pFontColor = bgColor,
+                     .pLineColor = fontColor,
+                     .radius     = BTN_ROUND_CORNER,
+                     .rect       = rectBtn};
+
+      // draw button
+      GUI_DrawButton(&btn2, isPressed);
+    }
   #else  // KEYBOARD_MATERIAL_THEME
-    uint16_t color;
+    uint16_t fontColor;
     uint16_t bgColor;
 
     if (isPressed)
     {
-      if (index > GKEY_BACK)
+      if (index > GKEY_BACK)  // if pressed a key on keyboard
       {
-        color = KEY_BG_COLOR;
+        fontColor = KEY_BG_COLOR;
         bgColor = KEY_FONT_COLOR;
       }
-      else
+      else  // if pressed a key on send area or control bar
       {
-        color = BAR_BG_COLOR;
+        fontColor = BAR_BG_COLOR;
         bgColor = BAR_FONT_COLOR;
       }
     }
     else
     {
-      if (index > GKEY_BACK)
+      if (index > GKEY_BACK)  // if pressed a key on keyboard
       {
-        color = KEY_FONT_COLOR;
+        fontColor = KEY_FONT_COLOR;
         bgColor = KEY_BG_COLOR;
       }
-      else
+      else  // if pressed a key on send area or control bar
       {
-        color = BAR_FONT_COLOR;
+        fontColor = BAR_FONT_COLOR;
         bgColor = BAR_BG_COLOR;
       }
     }
 
     drawStandardValue(&editorKeyRect[index], VALUE_STRING, (numpad) ? gcodeKey123[index] : gcodeKeyABC[index],
-                      (index != GKEY_SEND) ? FONT_SIZE_LARGE : FONT_SIZE_NORMAL, color, bgColor, 1, true);
+                      (index > GKEY_SEND) ? FONT_SIZE_LARGE : FONT_SIZE_NORMAL, fontColor, bgColor, 1, true);
+
+    if (index < GKEY_SEND)  // if key on text box, draw a status info on Send button area
+    {
+      char statusText[10];
+
+      if (isPressed)  // if pressed key
+      {
+        if (index < GKEY_CLEAR)
+        {
+          keyboardData->gcodeIndex = (keyboardData->gcodeIndex + MAX_GCODE_COUNT + (2 * (index == GKEY_NEXT)) - 1) % MAX_GCODE_COUNT;
+          sprintf(statusText, "%s %d/%d", gcodeKey123[index], keyboardData->gcodeIndex + 1, MAX_GCODE_COUNT);
+        }
+        else
+        {
+          strcpy(statusText, gcodeKey123[GKEY_CLEAR]);
+        }
+
+        fontColor = BAR_BG_COLOR;
+        bgColor = BAR_FONT_COLOR;
+      }
+      else  // if released key
+      {
+        strcpy(statusText, gcodeKey123[GKEY_SEND]);
+
+        fontColor = BAR_FONT_COLOR;
+        bgColor = BAR_BG_COLOR;
+      }
+
+      drawStandardValue(&editorKeyRect[GKEY_SEND], VALUE_STRING, statusText, FONT_SIZE_NORMAL, fontColor, bgColor, 1, true);
+    }
   #endif  // KEYBOARD_MATERIAL_THEME
 }
 
@@ -406,7 +510,7 @@ static inline void drawKeyboard(void)
     }
   #endif
 
-  for (uint8_t i = 0; i < COUNT(gcodeKeyABC); i++)
+  for (uint8_t i = GKEY_SEND; i < COUNT(gcodeKey123); i++)  // draw all the visible keys (text box keys are skipped)
   {
     keyboardDrawButton(i, false);
   }
@@ -438,21 +542,22 @@ static inline void keyboardDrawMenu(void)
 
   GUI_SetTextMode(GUI_TEXTMODE_TRANS);
 
-  // draw keyboard and gcode value
+  // draw keyboard
   drawKeyboard();
-  drawGcodeText(NULL);
 }
 
 static inline void menuKeyboardView(void)
 {
   KEY_VALUES key_num = KEY_IDLE;
-  CMD gcodeBuf = {0};
+  uint8_t saveGcodeIndex = keyboardData->gcodeIndex;
   uint8_t nowIndex = 0;
-  uint8_t lastIndex = 0;
+  uint8_t lastIndex = 0xFF;  // trigger text box draw
+  bool saveEnabled = true;
+  CMD gcodeBuf = {'\0'};
 
   keyboardDrawMenu();
 
-  while (curView == 1)
+  while (curView == KEYBOARD_VIEW)
   {
     if (MENU_IS_NOT(menuTerminal))
       break;
@@ -463,53 +568,76 @@ static inline void menuKeyboardView(void)
       case GKEY_IDLE:
         break;
 
-      case GKEY_BACK:
-        CLOSE_MENU();
+      case GKEY_PREV:
+      case GKEY_NEXT:
+        nowIndex = sprintf(gcodeBuf, keyboardData->gcodeTable[keyboardData->gcodeIndex]);  // load gcode from history table and update gcode size
+        lastIndex = ~nowIndex;  // trigger text box redraw
+        saveEnabled = false;
+        break;
+
+      case GKEY_CLEAR:
+        nowIndex = 0;  // reset gcode size
         break;
 
       case GKEY_SEND:
         if (nowIndex)
         {
-          gcodeBuf[nowIndex++] = '\n';  // end char '\n' for gcode
-          gcodeBuf[nowIndex] = 0;
-          storeCmd(gcodeBuf);
-          gcodeBuf[nowIndex = 0] = 0;
+          if (saveEnabled == true)  // avoid saving again a gcode called from gcode history table
+          {
+            strcpy(keyboardData->gcodeTable[saveGcodeIndex], gcodeBuf);  // save gcode to history table
+            saveGcodeIndex = (saveGcodeIndex + 1) % MAX_GCODE_COUNT;     // move to next save index in the gcode history table
+          }
+
+          strcpy(&gcodeBuf[nowIndex], "\n");
+          handleCmd(gcodeBuf);
         }
 
-        curView = 2;
+        keyboardData->gcodeIndex = saveGcodeIndex;  // save and update gcode index
+        curView = TERMINAL_VIEW;
         break;
 
       case GKEY_ABC_123:
-        numpad = !numpad;
+        TOGGLE_BIT(numpad, 0);
         drawKeyboard();
         break;
 
-      case GKEY_DEL:
-        if (nowIndex)
-          gcodeBuf[--nowIndex] = 0;
-        break;
-
       case GKEY_SPACE:
-        if (nowIndex < CMD_MAX_SIZE - 1 && nowIndex > 0)
+        if (nowIndex > 0 && nowIndex < CMD_MAX_SIZE - 2)  // -2 to leave space for '\n' and '\0' char
         {
           gcodeBuf[nowIndex++] = ' ';
-          gcodeBuf[nowIndex] = 0;
         }
         break;
 
+      case GKEY_DEL:
+        nowIndex -= !(!nowIndex);
+        break;
+
+      case GKEY_BACK:
+        CLOSE_MENU();
+        break;
+
       default:
-        if (nowIndex < CMD_MAX_SIZE - 1)
+        if (nowIndex < CMD_MAX_SIZE - 2)  // -2 to leave space for '\n' and '\0' char
         {
           gcodeBuf[nowIndex++] = (numpad) ? gcodeKey123[key_num][0] : gcodeKeyABC[key_num][0];
-          gcodeBuf[nowIndex] = 0;
+          saveEnabled = true;
         }
         break;
     }
 
     if (lastIndex != nowIndex)
     {
-      lastIndex = nowIndex;
+      lastIndex = nowIndex;  // update gcode size
+      gcodeBuf[nowIndex] = '\0';
       drawGcodeText(gcodeBuf);
+
+      if (*gcodeBuf == '\0')  // text area empty
+      {
+        for (uint8_t i = 0; i < GKEY_SEND; i++)  // draw text box keys
+        {
+          keyboardDrawButton(i, false);
+        }
+      }
     }
 
     loopBackEnd();
@@ -540,6 +668,11 @@ static inline void saveGcodeTerminalCache(const char * str, uint16_t strLen)
 
 void terminalCache(const char * stream, uint16_t streamLen, SERIAL_PORT_INDEX portIndex, TERMINAL_SRC src)
 {
+  #ifdef TERMINAL_KEYBOARD_VIEW_SUPPRESS_ACK
+    if (curView == KEYBOARD_VIEW)
+      return;
+  #endif
+
   char * srcId[SRC_TERMINAL_COUNT] = {"\5", "\6"};
 
   // copy string source identifier
@@ -551,7 +684,7 @@ void terminalCache(const char * stream, uint16_t streamLen, SERIAL_PORT_INDEX po
 
   if (src == SRC_TERMINAL_GCODE)
   {
-    if (serialPort[portIndex].id[0] != 0)  // if not empty string
+    if (serialPort[portIndex].id[0] != '\0')                // if not empty string
       saveGcodeTerminalCache(serialPort[portIndex].id, 1);  // serial port ID (e.g. "2" for SERIAL_PORT_2)
 
     saveGcodeTerminalCache(">>", 2);
@@ -695,7 +828,7 @@ static inline void terminalDrawMenu(void)
   terminalDrawPageNumber();
 }
 
-void menuTerminalWindow(void)
+void menuTerminalView(void)
 {
   #define CURSOR_START_X (terminalAreaRect[0].x0 + CURSOR_H_OFFSET)
 
@@ -711,7 +844,7 @@ void menuTerminalWindow(void)
 
   terminalDrawMenu();
 
-  while (curView == 2)
+  while (curView == TERMINAL_VIEW)
   {
     if (MENU_IS_NOT(menuTerminal))
       break;
@@ -730,12 +863,12 @@ void menuTerminalWindow(void)
         break;
 
       case TERM_TOGGLE_ACK:  // toggle ack in terminal
-        infoSettings.terminal_ack = (infoSettings.terminal_ack + 1) % ITEM_TOGGLE_NUM;
+        TOGGLE_BIT(infoSettings.terminal_ack, 0);
         terminalDrawButton(TERM_TOGGLE_ACK, false);
         break;
 
       case TERM_BACK:  // back
-        curView = 1;
+        curView = KEYBOARD_VIEW;
         break;
 
       default:
@@ -862,7 +995,7 @@ void menuTerminalWindow(void)
     loopBackEnd();
   }
 
-  terminalBuf[0] = 0;
+  terminalBuf[0] = '\0';
   terminalData->pageCount = 0;
   terminalData->pageHead = 0;
   terminalData->pageTail = 0;
@@ -876,30 +1009,29 @@ void menuTerminalWindow(void)
 
 void menuTerminal(void)
 {
-  TERMINAL_DATA termPage = {{terminalBuf}, MAX_PAGE_COUNT, 0, 0, 0, 0, TERMINAL_MAX_CHAR, 0, SRC_TERMINAL_COUNT};
+  KEYBOARD_DATA keybData = {{'\0'}, 0};
+  TERMINAL_DATA termData = {{terminalBuf}, MAX_PAGE_COUNT, 0, 0, 0, 0, MAX_TERMINAL_BUF_SIZE, 0, SRC_TERMINAL_COUNT};
 
-  if (isPrinting() || isHostPrinting())  // display only 1 page if printing
+  if (isPrinting() || isPrintingFromOnboard())  // display only 1 page if printing
   {
-    termPage.bufSize = (LCD_WIDTH / BYTE_WIDTH * LCD_HEIGHT / BYTE_HEIGHT);
-    termPage.maxPageCount = 1;
+    termData.bufSize = (LCD_WIDTH / BYTE_WIDTH * LCD_HEIGHT / BYTE_HEIGHT);
+    termData.maxPageCount = 1;
   }
 
-  char termBuf[termPage.bufSize];
+  char termBuf[termData.bufSize];
 
+  for (uint8_t i = 0; i < termData.maxPageCount; i++)
+  {
+    termData.pageTable[i] = termBuf;
+  }
+
+  keyboardData = &keybData;
+  terminalData = &termData;
   terminalBuf = termBuf;
-  terminalData = &termPage;
-  curView = 1;
-
-  for (uint8_t i = 0; i < termPage.maxPageCount; i++)
-  {
-    termPage.pageTable[i] = terminalBuf;
-  }
+  curView = KEYBOARD_VIEW;
 
   while (MENU_IS(menuTerminal))
   {
-    if (curView == 1)
-      menuKeyboardView();
-    else if (curView == 2)
-      menuTerminalWindow();
+    (curView == KEYBOARD_VIEW) ?  menuKeyboardView() : menuTerminalView();
   }
 }

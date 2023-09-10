@@ -51,7 +51,7 @@ const GUI_RECT gcodeRect[NUM_PER_PAGE] = {
 #endif
 };
 
-// error labels for files/Volume errors
+// error labels for files/volume errors
 const int16_t labelVolumeError[3] = {LABEL_TFT_SD_READ_ERROR, LABEL_TFT_USB_READ_ERROR, LABEL_ONBOARD_SD_READ_ERROR};
 
 static bool list_mode = true;
@@ -164,9 +164,9 @@ bool printPageItemSelected(uint16_t index)
       char temp_info[FILE_NUM + 50];
       sprintf(temp_info, (char *)textSelect(LABEL_START_PRINT), (uint8_t *)(filename));  // display short or long filename
 
-      // confirm file selction
-      setDialogText(LABEL_PRINT, (uint8_t *)temp_info, LABEL_CONFIRM, LABEL_CANCEL);
-      showDialog(DIALOG_TYPE_QUESTION, startPrint, exitFolder, NULL);
+      // confirm file selection
+      popupDialog(DIALOG_TYPE_QUESTION, LABEL_PRINT, (uint8_t *)temp_info, LABEL_CONFIRM, LABEL_CANCEL,
+                  startPrinting, exitFolder, NULL);
 
       hasUpdate = false;
     }
@@ -468,6 +468,6 @@ void menuPrint(void)
   }
 
 selectEnd:
-  if (!isHostPrinting())  // prevent reset if printing from other source
+  if (!isPrintingFromOnboard())  // prevent reset if printing from other source
     resetInfoFile();
 }

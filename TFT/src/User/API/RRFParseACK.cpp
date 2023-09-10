@@ -19,6 +19,7 @@
  *    "fanPercent": [ 0, 100, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1 ],
  *    "fanRPM": [ -1, -1, -1 ],
  *    "homed": [ 0, 0, 0 ],
+ *    "fraction_printed": 0,
  *    "msgBox.mode": -1
  *  }
  *
@@ -151,7 +152,7 @@ void ParseACKJsonParser::value(const char *value)
       speedSetCurPercent(0, strtod((char *)value, NULL));
       break;
     case efactor:
-      if (index == heatGetCurrentTool())
+      if (index == heatGetToolIndex())
       {
         speedSetCurPercent(1, strtod((char *)value, NULL));
       }
@@ -164,12 +165,18 @@ void ParseACKJsonParser::value(const char *value)
     case probe:
       break;
     case fan_percent:
-      if (index != 0 && index <= infoSettings.fan_count) // index 0 is an alias for default tool fan
+      if (index != 0 && index <= infoSettings.fan_count)  // index 0 is an alias for default tool fan
       {
         fanSetPercent(index - 1, strtod((char *)value, NULL) + 0.5f);
       }
       break;
     case fanRPM:
+      break;
+    case fraction_printed:
+      if (getPrintProgressSource() < PROG_RRF)
+        setPrintProgressSource(PROG_RRF);
+      if (getPrintProgressSource() == PROG_RRF)
+        setPrintProgressPercentage((value[0] - '0') * 100 + (value[2] - '0') * 10 + (value[3] - '0'));
       break;
     case mbox_seq:
       seq = strtod((char *)value, NULL);
@@ -191,20 +198,20 @@ void ParseACKJsonParser::value(const char *value)
       m291_timeo = SEC_TO_MS(strtod((char *)value, NULL));
       break;
     case resp:
-      if (strstr(value, (char *)"Steps/"))       //parse M92
+      if (strstr(value, (char *)"Steps/"))  // parse M92
       {
         if ((value = strstr(value, (char *)"X: ")) != NULL ) setParameter(P_STEPS_PER_MM, AXIS_INDEX_X,  atoi(value + 3));
         if ((value = strstr(value, (char *)"Y: ")) != NULL ) setParameter(P_STEPS_PER_MM, AXIS_INDEX_Y,  atoi(value + 3));
         if ((value = strstr(value, (char *)"Z: ")) != NULL ) setParameter(P_STEPS_PER_MM, AXIS_INDEX_Z,  atoi(value + 3));
         if ((value = strstr(value, (char *)"E: ")) != NULL ) setParameter(P_STEPS_PER_MM, AXIS_INDEX_E0, atoi(value + 3));
       }
-      else if ((string_start = strstr(value, (char *)"RepRapFirmware")) != NULL)    // parse M115
+      else if ((string_start = strstr(value, (char *)"RepRapFirmware")) != NULL)  // parse M115
       {
         setupMachine(FW_REPRAPFW);
         string_end = strstr(string_start, "ELECTRONICS");
         infoSetFirmwareName((uint8_t *)string_start, string_end-string_start);
       }
-      else if ((string_start = strstr(value, (char *)"access point")) != NULL)    //parse M552
+      else if ((string_start = strstr(value, (char *)"access point")) != NULL)  // parse M552
       {
         string_end = strstr(string_start, ",");
         string_start += 13;
@@ -217,10 +224,10 @@ void ParseACKJsonParser::value(const char *value)
           infoSetIPAddress((uint8_t *)string_start,  string_end-string_start);
         }
       }
-      else if ((string_start = strstr(value, (char *)"printing byte")) != NULL)       // parse M27  {"seq":21,"resp":"SD printing byte 1226/5040433\n"}
+      else if ((string_start = strstr(value, (char *)"printing byte")) != NULL)  // parse M27  {"seq":21,"resp":"SD printing byte 1226/5040433\n"}
       {
         string_end = strstr(string_start, (char *)"/");
-        setPrintProgress(atoi(string_start + 14), atoi(string_end + 1));
+        setPrintProgressData(atoi(string_start + 14), atoi(string_end + 1));
       }
       else if (strstr(value, (char *)"Auto tuning heater") && strstr(value, (char *)"completed"))
       {
@@ -233,11 +240,11 @@ void ParseACKJsonParser::value(const char *value)
 
       break;
     case result:
-        if (starting_print)
-        {
-          startRemotePrint(value);  // start print and open Printing menu
-          starting_print = false;
-        }
+      if (starting_print)
+      {
+        startPrintingFromRemoteHost(value);  // start print and open Printing menu
+        starting_print = false;
+      }
       break;
     case none:
       break;
